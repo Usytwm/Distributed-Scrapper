@@ -1,80 +1,61 @@
+from itertools import takewhile
+import operator
 import sqlite3
 import time
+from typing import OrderedDict
 from src.Interfaces import IStorage
 
 
 class Storage(IStorage):
-    def __init__(self, db_file="kademlia_storage.db", ttl=604800):
-        self.db_file = db_file
+    def __init__(self, ttl=604800):
+        # Inicializa el almacenamiento con un tiempo de vida (TTL)
+        self.data = OrderedDict()
         self.ttl = ttl
-        self.conn = sqlite3.connect(self.db_file)
-        self._setup_table()
-
-    def _setup_table(self):
-        """Crea la tabla de almacenamiento si no existe."""
-        with self.conn:
-            self.conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS storage (
-                    key TEXT PRIMARY KEY,
-                    value BLOB,
-                    timestamp REAL
-                )
-            """
-            )
 
     def __setitem__(self, key, value):
-        """Almacena un valor con la clave dada."""
-        timestamp = time.time()
-        with self.conn:
-            self.conn.execute(
-                """
-                INSERT OR REPLACE INTO storage (key, value, timestamp)
-                VALUES (?, ?, ?)
-            """,
-                (key, sqlite3.Binary(value), timestamp),
-            )
+        # Almacena un valor y elimina el antiguo si existe
+        if key in self.data:
+            del self.data[key]
+        self.data[key] = (time.monotonic(), value)
         self.cull()
-
-    def __getitem__(self, key):
-        """Devuelve el valor almacenado con la clave dada."""
-        self.cull()
-        cur = self.conn.cursor()
-        cur.execute("SELECT value FROM storage WHERE key = ?", (key,))
-        result = cur.fetchone()
-        if result is None:
-            raise KeyError(f"Key {key} not found")
-        return result[0]
-
-    def get(self, key, default=None):
-        """Devuelve un valor almacenado con la clave dada o un valor por defecto."""
-        try:
-            return self[key]
-        except KeyError:
-            return default
 
     def cull(self):
-        """Elimina los elementos que han superado el TTL."""
-        expiration_time = time.time() - self.ttl
-        with self.conn:
-            self.conn.execute(
-                "DELETE FROM storage WHERE timestamp < ?", (expiration_time,)
-            )
+        # Elimina los elementos que han superado el TTL
+        for _, _ in self.iter_older_than(self.ttl):
+            self.data.popitem(last=False)
+
+    def get(self, key, default=None):
+        # Devuelve un valor almacenado o un valor por defecto
+        self.cull()
+        if key in self.data:
+            return self[key]
+        return default
+
+    def __getitem__(self, key):
+        # Devuelve un valor almacenado con la clave dada
+        self.cull()
+        return self.data[key][1]
+
+    def __repr__(self):
+        self.cull()
+        return repr(self.data)
 
     def iter_older_than(self, seconds_old):
-        """Itera sobre los elementos más antiguos que el tiempo especificado."""
-        cur = self.conn.cursor()
-        cutoff = time.time() - seconds_old
-        cur.execute("SELECT key, value FROM storage WHERE timestamp < ?", (cutoff,))
-        return cur.fetchall()
+        # Itera sobre los elementos más antiguos que el tiempo especificado
+        min_birthday = time.monotonic() - seconds_old
+        zipped = self._triple_iter()
+        matches = takewhile(lambda r: min_birthday >= r[1], zipped)
+        return list(map(operator.itemgetter(0, 2), matches))
+
+    def _triple_iter(self):
+        # Devuelve un iterador de claves, tiempos de vida y valores
+        ikeys = self.data.keys()
+        ibirthday = map(operator.itemgetter(0), self.data.values())
+        ivalues = map(operator.itemgetter(1), self.data.values())
+        return zip(ikeys, ibirthday, ivalues)
 
     def __iter__(self):
-        """Itera sobre todos los elementos almacenados."""
         self.cull()
-        cur = self.conn.cursor()
-        cur.execute("SELECT key, value FROM storage")
-        return cur.fetchall()
-
-    def __del__(self):
-        """Cierra la conexión a la base de datos al finalizar."""
-        self.conn.close()
+        ikeys = self.data.keys()
+        ivalues = map(operator.itemgetter(1), self.data.values())
+        return zip(ikeys, ivalues)
