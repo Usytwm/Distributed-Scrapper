@@ -18,7 +18,7 @@ class Routing_Table:
             self.buckets.add(right_bucket)
     
     def k_closest_to(self, node):
-        bucket_idx = self.buckets.bisect_left(node)
+        bucket_idx = self.bucket_idx_of(node)
         closest = [(node.id ^ contact.id, contact) for contact in self.buckets[bucket_idx].get_contacts()]
         i = 1
         while len(closest) < self.bucket_max_size:
@@ -28,3 +28,9 @@ class Routing_Table:
                 closest.extend([(node.id ^ contact.id, contact) for contact in self.buckets[bucket_idx + i].get_contacts()])
         closest.sort()
         return [contact for distance, contact in closest[:self.bucket_max_size]]
+    
+    def bucket_idx_of(self, node):
+        return self.buckets.bisect_left(node)
+    
+    def __contains__(self, node):
+        return self.buckets[self.bucket_idx_of(node)].__contains__(node)
