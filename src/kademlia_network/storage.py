@@ -1,6 +1,5 @@
 from itertools import takewhile
 import operator
-import sqlite3
 import time
 from typing import OrderedDict
 from src.Interfaces import IStorage
