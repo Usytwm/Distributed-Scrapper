@@ -3,9 +3,12 @@ import heapq
 import operator
 import time
 
+from src.kademlia_network.kBucket import KBucket
+from src.kademlia_network.node import Node
+
 
 class RoutingTable:
-    def __init__(self, protocol, ksize, node):
+    def __init__(self, protocol, ksize, node: Node):
         # Inicializa la tabla de enrutamiento con el protocolo, tamaño k y nodo
         self.node = node
         self.protocol = protocol
@@ -70,3 +73,34 @@ class RoutingTable:
                 break
 
         return list(map(operator.itemgetter(1), heapq.nsmallest(k, nodes)))
+
+
+class TableTraverser:
+    def __init__(self, table: RoutingTable, startNode: Node):
+        # Inicializa el traverser con la tabla de enrutamiento y el nodo de inicio
+        index = table.get_bucket_for(startNode)
+        table.buckets[index].touch_last_updated()
+        self.current_nodes = table.buckets[index].get_nodes()
+        self.left_buckets = table.buckets[:index]
+        self.right_buckets = table.buckets[(index + 1) :]
+        self.left = True
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        # Devuelve el siguiente nodo en el recorrido de la tabla
+        if self.current_nodes:
+            return self.current_nodes.pop()
+
+        if self.left and self.left_buckets:
+            self.current_nodes = self.left_buckets.pop().get_nodes()
+            self.left = False
+            return next(self)
+
+        if self.right_buckets:
+            self.current_nodes = self.right_buckets.pop(0).get_nodes()
+            self.left = True
+            return next(self)
+
+        raise StopIteration

@@ -24,10 +24,6 @@ class Node:
         # Calcula la distancia a otro nodo usando XOR
         return self.long_id ^ node.long_id
 
-    def ping(self):
-        """Verifica si el nodo está en línea."""
-        return
-
     def __iter__(self):
         return iter([self.id, self.ip, self.port])
 
