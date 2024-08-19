@@ -19,10 +19,14 @@ class KademliaService(ConnectionHandler):
 
     def exposed_ping(self, nodeid):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
+        node = Node(nodeid)
+        self.welcome_if_new(node)
         return self.owner_node.id
 
     def exposed_store(self, nodeid, key, value):
         """Maneja una solicitud STORE y almacena el valor"""
+        node = Node(nodeid)
+        self.welcome_if_new(node)
         log.debug(
             "got a store request from node %s, storing '%s'='%s'", nodeid, key, value
         )
@@ -33,6 +37,7 @@ class KademliaService(ConnectionHandler):
         """Maneja una solicitud FIND_NODE y devuelve los vecinos más cercanos"""
         log.info("finding neighbors of %i in local table", int(nodeid.hex(), 16))
         node = Node(key)
+        self.welcome_if_new(node)
         neighbors = self.router.find_neighbors(node)
         return list(map(tuple, neighbors))
 
@@ -41,6 +46,8 @@ class KademliaService(ConnectionHandler):
         value = self.storage.get(key, None)
         if value is None:
             return self.exposed_find_node(nodeid, key)
+        node = Node(key)
+        self.welcome_if_new(node)
         return {"value": value}
 
     def welcome_if_new(self, node: Node):
@@ -95,7 +102,7 @@ class KademliaService(ConnectionHandler):
         """Maneja la respuesta de una llamada RPC"""
         if not result[0]:
             log.warning("no response from %s, removing from router", node)
-            self.router.remove_contact(node)
+            # self.router.remove_contact(node)
             return result
 
         log.info("got successful response from %s", node)
