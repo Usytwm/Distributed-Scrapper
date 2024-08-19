@@ -15,3 +15,10 @@ class Time_Heap:
             id = deque.popleft()
         self.times_in_heap[id] = 0
         return id
+    
+    def split(self, mid):
+        left = Time_Heap()
+        right = Time_Heap()
+        for id in self.heap:
+            (left if id <= mid else right).add_vision(right)
+        return (left, right)
