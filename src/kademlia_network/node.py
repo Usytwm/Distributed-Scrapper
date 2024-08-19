@@ -2,10 +2,7 @@ from operator import itemgetter
 import heapq
 from enum import Enum, auto
 
-
-class NodeType(Enum):
-    STORAGE = auto()
-    SCRAPER = auto()
+from src.kademlia_network.protocol import KademliaService
 
 
 class Node:
@@ -15,6 +12,7 @@ class Node:
         self.ip = ip
         self.port = port
         self.long_id = int(node_id.hex(), 16)
+        self.protopcol = KademliaService(self)
 
     def same_home_as(self, node: "Node"):
         # Verifica si este nodo está en la misma dirección IP y puerto que otro nodo y el id

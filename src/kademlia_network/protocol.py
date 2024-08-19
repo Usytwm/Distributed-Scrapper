@@ -5,6 +5,7 @@ from node import Node
 from routing import RoutingTable
 from src.Interfaces.IStorage import IStorage
 from src.Interfaces.ConectionHandler import ConnectionHandler
+from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
 from utils.utils import digest
 
@@ -13,7 +14,7 @@ log = logging.getLogger(__name__)
 
 class KademliaService(ConnectionHandler):
     def __init__(self, owner_node: Node, storage: IStorage, ksize: int = 20):
-        self.router = RoutingTable(self, ksize, owner_node)
+        self.router = Routing_Table(owner_node, ksize)
         self.storage = storage or Storage()
         self.owner_node = owner_node
 
@@ -38,7 +39,7 @@ class KademliaService(ConnectionHandler):
         log.info("finding neighbors of %i in local table", int(nodeid.hex(), 16))
         node = Node(key)
         self.welcome_if_new(node)
-        neighbors = self.router.find_neighbors(node)
+        neighbors = self.router.k_closest_to(node)
         return list(map(tuple, neighbors))
 
     def exposed_find_value(self, nodeid, key):
