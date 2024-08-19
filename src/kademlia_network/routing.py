@@ -3,6 +3,8 @@ import heapq
 import operator
 import time
 
+from src.kademlia_network.kBucket import KBucket
+
 
 class RoutingTable:
     def __init__(self, protocol, ksize, node):
