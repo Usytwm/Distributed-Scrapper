@@ -25,6 +25,8 @@ class KBucket:
             if answered:
                 self.time_heap.add_vision(least_seen_id)
                 return False
+            else:
+                self.contacts.remove(least_seen_id)
         self.time_heap.add_vision(node.id)
         self.contacts[node.id] = node
         return True
@@ -57,6 +59,9 @@ class KBucket:
 
     def get_contacts(self):
         return list(self.contacts.values())
+    
+    def __contains__(self, node):
+        return node.id in self.contacts
 
     def __check_least_seen_node__(self) -> bool:
         id = self.time_heap.get_least_seen()
