@@ -12,7 +12,7 @@ from utils.utils import digest
 log = logging.getLogger(__name__)
 
 
-class KademliaService(ConnectionHandler):
+class KademliaNode(ConnectionHandler):
     def __init__(self, owner_node: Node, storage: IStorage, ksize: int = 20):
         self.router = Routing_Table(owner_node, ksize)
         self.storage = storage or Storage()
@@ -53,13 +53,13 @@ class KademliaService(ConnectionHandler):
 
     def welcome_if_new(self, node: Node):
         """Añade un nodo a la tabla de enrutamiento si es nuevo"""
-        if not self.router.is_new_node(node):
+        if not node in self.router:
             return
 
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
             keynode = Node(digest(key))
-            neighbors = self.router.find_neighbors(keynode)
+            neighbors = self.router.k_closest_to(keynode)
             if neighbors:
                 last = neighbors[-1].distance_to(keynode)
                 new_node_close = node.distance_to(keynode) < last
@@ -67,7 +67,7 @@ class KademliaService(ConnectionHandler):
                 this_closest = self.owner_node.distance_to(keynode) < first
             if not neighbors or (new_node_close and this_closest):
                 asyncio.create_task(self.call_store(node, key, value))
-        self.router.add_contact(node)
+        self.router.add(node)
 
     async def call_find_node(self, node_to_ask: Node, node_to_find: Node):
         """Llama a FIND_NODE en otro nodo"""

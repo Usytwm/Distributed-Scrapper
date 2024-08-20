@@ -1,10 +1,3 @@
-from operator import itemgetter
-import heapq
-from enum import Enum, auto
-
-from src.kademlia_network.protocol import KademliaService
-
-
 class Node:
     def __init__(self, node_id, ip=None, port=None):
         # Inicializa un nodo con su ID, IP , puerto y su rol
@@ -12,7 +5,6 @@ class Node:
         self.ip = ip
         self.port = port
         self.long_id = int(node_id.hex(), 16)
-        self.protopcol = KademliaService(self)
 
     def same_home_as(self, node: "Node"):
         # Verifica si este nodo está en la misma dirección IP y puerto que otro nodo y el id
