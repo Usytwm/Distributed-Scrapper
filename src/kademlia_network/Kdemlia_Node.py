@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import pickle
 import random
 
 from node_data import NodeData
@@ -8,6 +9,7 @@ from src.Interfaces.ConectionHandler import ConnectionHandler
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
 from utils.utils import digest
+from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +24,8 @@ class Node(ConnectionHandler):
         self.id = node_id or digest(random.getrandbits(255))
         self.host = ip
         self.port = port
+        self.node = NodeData(self.host, self.port, self.id)
+        self.ksize = ksize
 
     def exposed_ping(self, nodeid):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
@@ -112,6 +116,119 @@ class Node(ConnectionHandler):
         log.info("got successful response from %s", node)
         self.welcome_if_new(node)
         return result
+
+    # TODO New
+    async def listen(self, port, interface="0.0.0.0"):
+        """Inicia el nodo en la interfaz y puerto especificados usando RPyC"""
+        self.host = interface
+        self.port = port
+        log.info(f"Node {self.id} listening on {interface}:{port}")
+        server = ThreadedServer(
+            self, port=port, protocol_config={"allow_all_attrs": True}
+        )
+        await asyncio.to_thread(server.start)
+
+    async def bootstrap(self, addrs):
+        """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
+        log.debug(f"Attempting to bootstrap node with {len(addrs)} initial contacts")
+        tasks = [self.call_ping(NodeData(addr[0], addr[1])) for addr in addrs]
+        results = await asyncio.gather(*tasks)
+        # eliminar cuaalquier nodo que no respondio o o se pudo conytactar haciendo ping
+        nodes = [
+            NodeData(result[1], addr[0], addr[1])
+            for result, addr in zip(results, addrs)
+            if result[0]
+        ]
+        # Todo Impolemetar como guardar la informacion de los nodos emn la red,
+
+    async def get(self, key):
+        """Busca un valor en la red"""
+        log.info(f"Looking up key {key}")
+        dkey = digest(key)
+        if dkey in self.storage:
+            return self.storage.get(dkey)
+
+        node = NodeData(dkey)
+        nearest = self.router.k_closest_to(node)
+        if not nearest:
+            log.warning(f"There are no known neighbors to get key {key}")
+            return None
+        # LLamo a buscar el valor en los K VECINOS MAS CERCANOS MIOS
+        tasks = [self.call_find_value(n, node) for n in nearest]
+        results = await asyncio.gather(*tasks)
+        for result in results:
+            if "value" in result:
+                return result["value"]
+        return None
+
+    async def set(self, key, value):
+        """Almacena un valor en la red"""
+
+        log.info(f"Setting '{key}' = '{value}' on network")
+        dkey = digest(key)
+        self.storage[dkey] = value
+
+        node = NodeData(dkey)
+        nearest = self.router.k_closest_to(node)
+        if not nearest:
+            log.warning(f"There are no known neighbors to set key {key}")
+            return False
+        # Guardio en los vecinos mas cercanos a ese key
+        tasks = [self.call_store(n, dkey, value) for n in nearest]
+        await asyncio.gather(*tasks)
+        return True
+
+    def bootstrappable_k_closest(self):
+        neighbors = self.router.k_closest_to(self.node)
+        return [tuple(n)[-2:] for n in neighbors]
+
+    def save_state(self, fname):
+        """Guarda el estado del nodo en un archivo"""
+        log.info(f"Saving state to {fname}")
+        data = {
+            "ksize": self.ksize,
+            "alpha": self.alpha,
+            "id": self.id,
+            "storage": self.storage,
+            "neighbors": self.bootstrappable_k_closest(),
+        }
+        with open(fname, "wb") as f:
+            pickle.dump(data, f)
+
+    @classmethod
+    async def load_state(cls, fname, port, interface="0.0.0.0"):
+        """Carga el estado del nodo desde un archivo"""
+        log.info(f"Loading state from {fname}")
+        with open(fname, "rb") as f:
+            data = pickle.load(f)
+
+        node = cls(
+            node_id=data["id"],
+            storage=data["storage"],
+            ip=interface,
+            port=port,
+            ksize=data["ksize"],
+            alpha=data["alpha"],
+        )
+        await node.listen(port, interface)
+        if data["neighbors"]:
+            await node.bootstrap(data["neighbors"])
+        return node
+
+    def refresh_table(self):
+        """Refresca la tabla de enrutamiento periódicamente"""
+        log.debug("Refreshing routing table")
+        asyncio.ensure_future(self._refresh_table())
+        loop = asyncio.get_event_loop()
+        # para qeu la tabla de enrutamiento se refresque cada 30 segundos
+        self.refresh_loop = loop.call_later(30, self.refresh_table)
+
+    async def _refresh_table(self):
+        """Actualiza la tabla de enrutamiento buscando nodos refrescados"""
+        # for node_id in self.protocol.get_refresh_ids():
+        #     node = NodeData(node_id)
+        #     nearest = self.router.k_closest_to(node)
+        #     # Aquí puedes agregar la lógica para refrescar la tabla
 
 
 def distance_to(node_1_id, node_2_id):
