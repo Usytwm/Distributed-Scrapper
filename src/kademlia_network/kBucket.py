@@ -35,8 +35,11 @@ class KBucket:
         self.time_heap.add_vision(node.id)
         self.contacts[node.id] = node
         return True
-
-    def split(self) -> Tuple["KBucket", "KBucket"]:
+    
+    def remove(self, node) -> None:
+        self.time_heap.mark_as_inactive(node.id)
+    
+    def split(self) -> Tuple['KBucket', 'KBucket']:
         mid = (self.start + self.end) // 2
         left = KBucket(
             self.owner_node,
@@ -63,9 +66,9 @@ class KBucket:
         return (left, right)
 
     def get_contacts(self):
-        return list(self.contacts.values())
-
-    def __contains__(self, node: NodeData):
+        return [(contact in self.time_heap.inactives, contact) for contact in self.contacts.values()]
+    
+    def __contains__(self, node):
         return node.id in self.contacts
 
     def __check_least_seen_node__(self) -> bool:
