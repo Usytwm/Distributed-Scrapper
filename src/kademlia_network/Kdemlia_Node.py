@@ -1,8 +1,8 @@
 import asyncio
 import logging
+import random
 
 from node_data import NodeData
-from routing import RoutingTable
 from src.Interfaces.IStorage import IStorage
 from src.Interfaces.ConectionHandler import ConnectionHandler
 from src.kademlia_network.routing_table import Routing_Table
@@ -13,16 +13,21 @@ log = logging.getLogger(__name__)
 
 
 class Node(ConnectionHandler):
-    def __init__(self, node_id, storage: IStorage, ip=None, port=None, ksize: int = 20):
-        self.router = RoutingTable(self, ksize, self)
+    def __init__(
+        self, node_id, storage: IStorage, ip=None, port=None, ksize: int = 20, alpha=3
+    ):
+        self.router = Routing_Table(self, ksize)
         self.storage = storage or Storage()
-        self.id = node_id
+        self.alpha = alpha
+        self.id = node_id or digest(random.getrandbits(255))
+        self.host = ip
+        self.port = port
 
     def exposed_ping(self, nodeid):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
         node = NodeData(nodeid)
         self.welcome_if_new(node)
-        return self.owner_node.id
+        return self.id
 
     def exposed_store(self, nodeid, key, value):
         """Maneja una solicitud STORE y almacena el valor"""
@@ -59,12 +64,12 @@ class Node(ConnectionHandler):
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
             keynode = NodeData(digest(key))
-            neighbors = self.router.find_neighbors(keynode)
+            neighbors = self.router.k_closest_to(keynode)
             if neighbors:
-                last = neighbors[-1].distance_to(keynode)
-                new_node_close = node.distance_to(keynode) < last
-                first = neighbors[0].distance_to(keynode)
-                this_closest = self.owner_node.distance_to(keynode) < first
+                last = distance_to(neighbors[-1].id, keynode)
+                new_node_close = distance_to(node.id, keynode) < last
+                first = distance_to(neighbors[0].id, keynode)
+                this_closest = distance_to(self.id, keynode.id) < first
             if not neighbors or (new_node_close and this_closest):
                 asyncio.create_task(self.call_store(node, key, value))
         self.router.add(node)
@@ -73,7 +78,7 @@ class Node(ConnectionHandler):
         """Llama a FIND_NODE en otro nodo"""
         address = (node_to_ask.ip, node_to_ask.port)
         result = await asyncio.to_thread(
-            self._find_node, address, self.owner_node.id, node_to_find.id
+            self._find_node, address, self.id, node_to_find.id
         )
         return self.handle_call_response(result, node_to_ask)
 
@@ -81,22 +86,20 @@ class Node(ConnectionHandler):
         """Llama a FIND_VALUE en otro nodo"""
         address = (node_to_ask.ip, node_to_ask.port)
         result = await asyncio.to_thread(
-            self._find_value, address, self.owner_node.id, node_to_find.id
+            self._find_value, address, self.id, node_to_find.id
         )
         return self.handle_call_response(result, node_to_ask)
 
     async def call_ping(self, node_to_ask: NodeData):
         """Llama a PING en otro nodo"""
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await asyncio.to_thread(self._ping, address, self.owner_node.id)
+        result = await asyncio.to_thread(self._ping, address, self.id)
         return self.handle_call_response(result, node_to_ask)
 
     async def call_store(self, node_to_ask: NodeData, key, value):
         """Llama a STORE en otro nodo"""
         address = (node_to_ask.ip, node_to_ask.port)
-        result = await asyncio.to_thread(
-            self._store, address, self.owner_node.id, key, value
-        )
+        result = await asyncio.to_thread(self._store, address, self.id, key, value)
         return self.handle_call_response(result, node_to_ask)
 
     def handle_call_response(self, result, node: NodeData):
@@ -109,3 +112,8 @@ class Node(ConnectionHandler):
         log.info("got successful response from %s", node)
         self.welcome_if_new(node)
         return result
+
+
+def distance_to(node_1_id, node_2_id):
+    # Calcula la distancia de un nodo a otro nodo usando XOR
+    return node_1_id ^ node_2_id
