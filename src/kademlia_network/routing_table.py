@@ -8,7 +8,7 @@ class Routing_Table:
         self.bucket_max_size = bucket_max_size
     
     def add(self, node) -> None:
-        bucket = self.buckets[self.buckets.bisect_left(node)]
+        bucket = self.buckets[self.bucket_idx_of(node)]
         if bucket.add(node):
             return
         if bucket.can_be_splitted:
@@ -16,6 +16,9 @@ class Routing_Table:
             self.buckets.discard(bucket)
             self.buckets.add(left_bucket)
             self.buckets.add(right_bucket)
+    
+    def remove(self, node) -> None:
+        self.buckets[self.bucket_idx_of(node)].remove(node)
     
     def k_closest_to(self, node):
         bucket_idx = self.bucket_idx_of(node)

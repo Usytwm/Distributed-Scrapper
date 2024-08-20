@@ -27,6 +27,9 @@ class KBucket:
         self.contacts[node.id] = node
         return True
     
+    def remove(self, node) -> None:
+        self.time_heap.mark_as_inactive(node.id)
+    
     def split(self) -> Tuple['KBucket', 'KBucket']:
         mid = (self.start + self.end) // 2
         left = KBucket(self.owner_node, self.max_size, self.start, self.mid, (self.owner_node.id <= mid))
