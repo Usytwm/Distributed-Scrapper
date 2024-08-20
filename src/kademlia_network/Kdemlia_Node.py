@@ -29,13 +29,13 @@ class Node(ConnectionHandler):
 
     def exposed_ping(self, nodeid):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
-        node = NodeData(nodeid)
+        node = NodeData(id=nodeid)
         self.welcome_if_new(node)
         return self.id
 
     def exposed_store(self, nodeid, key, value):
         """Maneja una solicitud STORE y almacena el valor"""
-        node = NodeData(nodeid)
+        node = NodeData(id=nodeid)
         self.welcome_if_new(node)
         log.debug(
             "got a store request from node %s, storing '%s'='%s'", nodeid, key, value
@@ -46,7 +46,7 @@ class Node(ConnectionHandler):
     def exposed_find_node(self, nodeid, key):
         """Maneja una solicitud FIND_NODE y devuelve los vecinos más cercanos"""
         log.info("finding neighbors of %i in local table", int(nodeid.hex(), 16))
-        node = NodeData(key)
+        node = NodeData(id=key)
         self.welcome_if_new(node)
         neighbors = self.router.k_closest_to(node)
         return list(map(tuple, neighbors))
@@ -56,7 +56,7 @@ class Node(ConnectionHandler):
         value = self.storage.get(key, None)
         if value is None:
             return self.exposed_find_node(nodeid, key)
-        node = NodeData(key)
+        node = NodeData(id=key)
         self.welcome_if_new(node)
         return {"value": value}
 
@@ -67,7 +67,7 @@ class Node(ConnectionHandler):
 
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
-            keynode = NodeData(digest(key))
+            keynode = NodeData(id=digest(key))
             neighbors = self.router.k_closest_to(keynode)
             if neighbors:
                 last = distance_to(neighbors[-1].id, keynode)
@@ -131,14 +131,15 @@ class Node(ConnectionHandler):
     async def bootstrap(self, addrs):
         """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
         log.debug(f"Attempting to bootstrap node with {len(addrs)} initial contacts")
-        tasks = [self.call_ping(NodeData(addr[0], addr[1])) for addr in addrs]
+        tasks = [self.call_ping(NodeData(ip=addr[0], port=addr[1])) for addr in addrs]
         results = await asyncio.gather(*tasks)
         # eliminar cuaalquier nodo que no respondio o o se pudo conytactar haciendo ping
         nodes = [
-            NodeData(result[1], addr[0], addr[1])
+            NodeData(addr[0], addr[1], result[1])
             for result, addr in zip(results, addrs)
             if result[0]
         ]
+
         # Todo Impolemetar como guardar la informacion de los nodos emn la red,
 
     async def get(self, key):
@@ -148,7 +149,7 @@ class Node(ConnectionHandler):
         if dkey in self.storage:
             return self.storage.get(dkey)
 
-        node = NodeData(dkey)
+        node = NodeData(id=dkey)
         nearest = self.router.k_closest_to(node)
         if not nearest:
             log.warning(f"There are no known neighbors to get key {key}")
@@ -168,7 +169,7 @@ class Node(ConnectionHandler):
         dkey = digest(key)
         self.storage[dkey] = value
 
-        node = NodeData(dkey)
+        node = NodeData(id=dkey)
         nearest = self.router.k_closest_to(node)
         if not nearest:
             log.warning(f"There are no known neighbors to set key {key}")
