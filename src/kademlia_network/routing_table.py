@@ -1,7 +1,7 @@
 from kBucket import KBucket
 from sortedcontainers import SortedList
-
-from src.kademlia_network.node import Node
+from src.kademlia_network.Kdemlia_Node import Node
+from src.kademlia_network.node_data import NodeData
 
 
 class Routing_Table:
@@ -23,7 +23,7 @@ class Routing_Table:
             self.buckets.add(left_bucket)
             self.buckets.add(right_bucket)
 
-    def k_closest_to(self, node):
+    def k_closest_to(self, node: NodeData):
         bucket_idx = self.bucket_idx_of(node)
         closest = [
             (node.id ^ contact.id, contact)
