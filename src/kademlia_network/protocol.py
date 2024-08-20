@@ -13,10 +13,10 @@ log = logging.getLogger(__name__)
 
 
 class Node(ConnectionHandler):
-    def __init__(self, owner_node: NodeData, storage: IStorage, ksize: int = 20):
-        self.router = RoutingTable(self, ksize, owner_node)
+    def __init__(self, node_id, storage: IStorage, ip=None, port=None, ksize: int = 20):
+        self.router = RoutingTable(self, ksize, self)
         self.storage = storage or Storage()
-        self.owner_node = owner_node
+        self.id = node_id
 
     def exposed_ping(self, nodeid):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""

@@ -1,11 +1,16 @@
 from typing import List, Dict, Tuple
-from src.kademlia_network.node import Node
+from src.kademlia_network.node_data import NodeData
 from time_heap import Time_Heap
 
 
 class KBucket:
     def __init__(
-        self, owner_node, bucket_max_size: int, start, end, can_be_splitted=True
+        self,
+        owner_node: NodeData,
+        bucket_max_size: int,
+        start,
+        end,
+        can_be_splitted=True,
     ):
         self.owner_node = owner_node
         self.max_size = bucket_max_size
@@ -15,7 +20,7 @@ class KBucket:
         self.time_heap = Time_Heap()
         self.can_be_splitted = can_be_splitted
 
-    def add(self, node: Node) -> bool:
+    def add(self, node: NodeData) -> bool:
         """Retorna True si el nodo fue anhadido y False si fue descartado"""
         if node.id in self.contacts:
             self.time_heap.add_vision(node.id)
@@ -59,8 +64,8 @@ class KBucket:
 
     def get_contacts(self):
         return list(self.contacts.values())
-    
-    def __contains__(self, node):
+
+    def __contains__(self, node: NodeData):
         return node.id in self.contacts
 
     def __check_least_seen_node__(self) -> bool:
