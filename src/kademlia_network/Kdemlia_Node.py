@@ -191,6 +191,7 @@ class Node(ConnectionHandler):
             "id": self.id,
             "storage": self.storage,
             "neighbors": self.bootstrappable_k_closest(),
+            "router": self.router,
         }
         with open(fname, "wb") as f:
             pickle.dump(data, f)
@@ -210,6 +211,7 @@ class Node(ConnectionHandler):
             ksize=data["ksize"],
             alpha=data["alpha"],
         )
+        node.router = data["router"]
         await node.listen(port, interface)
         if data["neighbors"]:
             await node.bootstrap(data["neighbors"])
