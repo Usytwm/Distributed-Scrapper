@@ -45,7 +45,7 @@ class KBucket:
         return (left, right)
     
     def get_contacts(self):
-        return list(self.contacts.values())
+        return [(contact in self.time_heap.inactives, contact) for contact in self.contacts.values()]
     
     def __contains__(self, node):
         return node.id in self.contacts
