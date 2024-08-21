@@ -13,7 +13,7 @@ class Time_Heap:
 
     def get_least_seen(self) -> int:
         """Devuelve el id del nodo que fue visto por ultima vez hace mas tiempo"""
-        id = deque.popleft()
+        id = self.heap.popleft()
         while self.times_in_heap[id] != 1:
             self.times_in_heap[id] = min(self.times_in_heap[id] - 1, 0)
             id = deque.popleft()
@@ -24,7 +24,7 @@ class Time_Heap:
         left = Time_Heap()
         right = Time_Heap()
         for id in self.heap:
-            (left if id <= mid else right).add_vision(right)
+            (left if (id <= mid) else right).add_vision(id)
         return (left, right)
 
     def remove(self, id):
