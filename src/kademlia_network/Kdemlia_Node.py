@@ -3,12 +3,13 @@ import logging
 import pickle
 import random
 
+from sortedcontainers import SortedList
 from node_data import NodeData
 from src.Interfaces.IStorage import IStorage
 from src.Interfaces.ConectionHandler import ConnectionHandler
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from utils.utils import digest
+from utils.utils import digest, gather_dict
 from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
@@ -29,13 +30,13 @@ class Node(ConnectionHandler):
 
     def exposed_ping(self, nodeid):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
-        node = NodeData(nodeid)
+        node = NodeData(id=nodeid)
         self.welcome_if_new(node)
         return self.id
 
     def exposed_store(self, nodeid, key, value):
         """Maneja una solicitud STORE y almacena el valor"""
-        node = NodeData(nodeid)
+        node = NodeData(id=nodeid)
         self.welcome_if_new(node)
         log.debug(
             "got a store request from node %s, storing '%s'='%s'", nodeid, key, value
@@ -46,7 +47,7 @@ class Node(ConnectionHandler):
     def exposed_find_node(self, nodeid, key):
         """Maneja una solicitud FIND_NODE y devuelve los vecinos más cercanos"""
         log.info("finding neighbors of %i in local table", int(nodeid.hex(), 16))
-        node = NodeData(key)
+        node = NodeData(id=key)
         self.welcome_if_new(node)
         neighbors = self.router.k_closest_to(node)
         return list(map(tuple, neighbors))
@@ -56,7 +57,7 @@ class Node(ConnectionHandler):
         value = self.storage.get(key, None)
         if value is None:
             return self.exposed_find_node(nodeid, key)
-        node = NodeData(key)
+        node = NodeData(id=key)
         self.welcome_if_new(node)
         return {"value": value}
 
@@ -67,7 +68,7 @@ class Node(ConnectionHandler):
 
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
-            keynode = NodeData(digest(key))
+            keynode = NodeData(id=digest(key))
             neighbors = self.router.k_closest_to(keynode)
             if neighbors:
                 last = distance_to(neighbors[-1].id, keynode)
@@ -131,14 +132,34 @@ class Node(ConnectionHandler):
     async def bootstrap(self, addrs):
         """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
         log.debug(f"Attempting to bootstrap node with {len(addrs)} initial contacts")
-        tasks = [self.call_ping(NodeData(addr[0], addr[1])) for addr in addrs]
+        tasks = [self.call_ping(NodeData(ip=addr[0], port=addr[1])) for addr in addrs]
         results = await asyncio.gather(*tasks)
         # eliminar cuaalquier nodo que no respondio o o se pudo conytactar haciendo ping
         nodes = [
-            NodeData(result[1], addr[0], addr[1])
+            NodeData(addr[0], addr[1], result[1])
             for result, addr in zip(results, addrs)
             if result[0]
         ]
+
+        # Todo guardar en la routing table los nodos que me devolvieron el ping
+        # dicts = {}
+        # for peer in nodes:
+        #     self.router.add(peer)
+        #     dicts[peer.id] = self.call_find_node(peer, self.node)
+        # found = await gather_dict(dicts)
+        # nearest_nodes = []
+
+        # for _, response in found.items():
+        #     response = RPCFindResponse(response)
+        #     if response.happened():
+        #         nearest_nodes.extend(response.get_node_list())
+        # dict = {}
+        # for peer in nearest_nodes:
+        #     self.router.add(peer)
+        #     dict[peer.id] = self.call_find_node(peer, self.node)
+        # found = await gather_dict(dicts)
+        # return nearest_nodes
+
         # Todo Impolemetar como guardar la informacion de los nodos emn la red,
 
     async def get(self, key):
@@ -148,7 +169,7 @@ class Node(ConnectionHandler):
         if dkey in self.storage:
             return self.storage.get(dkey)
 
-        node = NodeData(dkey)
+        node = NodeData(id=dkey)
         nearest = self.router.k_closest_to(node)
         if not nearest:
             log.warning(f"There are no known neighbors to get key {key}")
@@ -168,11 +189,23 @@ class Node(ConnectionHandler):
         dkey = digest(key)
         self.storage[dkey] = value
 
-        node = NodeData(dkey)
+        node = NodeData(id=dkey)
         nearest = self.router.k_closest_to(node)
         if not nearest:
             log.warning(f"There are no known neighbors to set key {key}")
             return False
+        # spider = NodeSpiderCrawl(self.protocol, node, nearest,
+        #                          self.ksize, self.alpha)
+        # nodes = await spider.find()
+        # log.info("setting '%s' on %s", dkey.hex(), list(map(str, nodes)))
+
+        # # if this node is close too, then store here as well
+        # biggest = max([n.distance_to(node) for n in nodes])
+        # if self.node.distance_to(node) < biggest:
+        #     self.storage[dkey] = value
+        # results = [self.protocol.call_store(n, dkey, value) for n in nodes]
+        # # return true only if at least one store call succeeded
+        # return any(await asyncio.gather(*results))
         # Guardio en los vecinos mas cercanos a ese key
         tasks = [self.call_store(n, dkey, value) for n in nearest]
         await asyncio.gather(*tasks)
@@ -195,6 +228,52 @@ class Node(ConnectionHandler):
         }
         with open(fname, "wb") as f:
             pickle.dump(data, f)
+
+    async def lookup(self, id):
+        """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
+        log.info(f"Initiating lookup for key {id}")
+        node = NodeData(id=id)
+
+        # Inicializar el conjunto de nodos más cercanos a partir de la tabla de enrutamiento
+        nearest = SortedList(
+            [
+                (distance_to(id, contact.id), contact)
+                for contact in self.router.k_closest_to(node)
+            ]
+        )
+        if not nearest:
+            log.warning(f"No known neighbors to lookup key {id}")
+            return []
+
+        # Iniciar las consultas a los alpha nodos más cercanos
+        already_queried = set()
+
+        while True:
+            responses = []
+            # Seleccionamos hasta alpha nodos para consultar simultáneamente
+            tasks = [
+                self.call_find_node(n, node)
+                for _, n in nearest
+                if not n.id in already_queried
+            ]
+            nodes_to_query = [n for _, n in nearest if not n.id in already_queried]
+            results = await asyncio.gather(*tasks)
+            results = zip(results, nodes_to_query)
+
+            for result, n in results:
+                if result[0]:
+                    responses.extend([NodeData(n.ip, n.port, n.id) for n in result[1]])
+
+            for n in responses:
+                if n.id not in already_queried:
+                    nearest.add(distance_to(n.id, id), n)
+                    already_queried.add(n.id)
+
+            nearest = nearest[: self.ksize]
+            if all(x in already_queried for x in nearest):
+                break
+
+        return nearest
 
     @classmethod
     async def load_state(cls, fname, port, interface="0.0.0.0"):
