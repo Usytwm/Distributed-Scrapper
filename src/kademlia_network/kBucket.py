@@ -46,6 +46,7 @@ class KBucket:
             self.owner_node,
             self.max_size,
             self.start,
+            mid,
             (self.owner_node.id <= mid),
         )
         right = KBucket(
@@ -73,4 +74,5 @@ class KBucket:
 
     def __check_least_seen_node__(self) -> bool:
         id = self.time_heap.get_least_seen()
-        return self.owner_node.ping(self.contacts[id]), id
+        # return self.owner_node.ping(self.contacts[id]), id
+        return True, id
