@@ -1,8 +1,8 @@
 from itertools import takewhile
 import operator
 import time
-from typing import OrderedDict
-from src.Interfaces import IStorage
+from collections import OrderedDict
+from src.Interfaces.IStorage import IStorage
 
 
 class Storage(IStorage):

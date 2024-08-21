@@ -1,11 +1,10 @@
-from kBucket import KBucket
+from src.kademlia_network.kBucket import KBucket
 from sortedcontainers import SortedList
-from src.kademlia_network.Kdemlia_Node import Node
 from src.kademlia_network.node_data import NodeData
 
 
 class Routing_Table:
-    def __init__(self, owner_node: Node, bucket_max_size):
+    def __init__(self, owner_node, bucket_max_size):
         self.buckets = SortedList(
             [KBucket(owner_node, bucket_max_size, 0, (1 << 160))],
             key=lambda kbucket: kbucket.start,

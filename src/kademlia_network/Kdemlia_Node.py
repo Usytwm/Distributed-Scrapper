@@ -4,12 +4,12 @@ import pickle
 import random
 
 from sortedcontainers import SortedList
-from node_data import NodeData
+from src.kademlia_network.node_data import NodeData
 from src.Interfaces.IStorage import IStorage
 from src.Interfaces.ConectionHandler import ConnectionHandler
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from utils.utils import digest, gather_dict
+from src.utils.utils import digest, gather_dict
 from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
@@ -17,7 +17,13 @@ log = logging.getLogger(__name__)
 
 class Node(ConnectionHandler):
     def __init__(
-        self, node_id, storage: IStorage, ip=None, port=None, ksize: int = 20, alpha=3
+        self,
+        node_id,
+        storage: IStorage = None,
+        ip=None,
+        port=None,
+        ksize: int = 20,
+        alpha=3,
     ):
         self.router = Routing_Table(self, ksize)
         self.storage = storage or Storage()
