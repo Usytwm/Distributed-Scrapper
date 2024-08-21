@@ -17,22 +17,22 @@ class ConnectionHandler(rpyc.Service):
             f"Cliente desconectado desde {conn._channel.stream.sock.getpeername()}"
         )
 
-    def _ping(self, address, node_id):
+    def _ping(self, address, node):
         """Método interno para manejar PING"""
         with rpyc.connect(address[0], address[1]) as conn:
-            return conn.root.ping(node_id)
+            return conn.root.ping(node)
 
-    def _store(self, address, node_id, key, value):
+    def _store(self, address, node, key, value):
         """Método interno para manejar STORE"""
         with rpyc.connect(address[0], address[1]) as conn:
-            return conn.root.store(node_id, key, value)
+            return conn.root.store(node, key, value)
 
-    def _find_node(self, address, node_id, key):
+    def _find_node(self, address, node, key):
         """Método interno para manejar FIND_NODE"""
         with rpyc.connect(address[0], address[1]) as conn:
-            return conn.root.find_node(node_id, key)
+            return conn.root.find_node(node, key)
 
-    def _find_value(self, address, node_id, key):
+    def _find_value(self, address, node, key):
         """Método interno para manejar FIND_VALUE"""
         with rpyc.connect(address[0], address[1]) as conn:
-            return conn.root.find_value(node_id, key)
+            return conn.root.find_value(node, key)

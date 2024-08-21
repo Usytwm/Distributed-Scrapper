@@ -33,54 +33,52 @@ class Node(ConnectionHandler):
         self.port = port
         self.node = NodeData(self.host, self.port, self.id)
         self.ksize = ksize
+        self.node_data = NodeData(self.host, self.port, self.id)
 
-    def exposed_ping(self, nodeid):
+    def exposed_ping(self, node: NodeData):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
-        node = NodeData(id=nodeid)
         self.welcome_if_new(node)
-        return self.id
+        return self.id  # Por que devolvemos esto?
 
-    def exposed_store(self, nodeid, key, value):
+    def exposed_store(self, node: NodeData, key: int, value):
         """Maneja una solicitud STORE y almacena el valor"""
-        node = NodeData(id=nodeid)
         self.welcome_if_new(node)
         log.debug(
-            "got a store request from node %s, storing '%s'='%s'", nodeid, key, value
+            "got a store request from node %s, storing '%s'='%s'", node.id, key, value
         )
         self.storage[key] = value
         return True
 
-    def exposed_find_node(self, nodeid, key):
+    def exposed_find_node(self, node: NodeData, key):
         """Maneja una solicitud FIND_NODE y devuelve los vecinos más cercanos"""
-        log.info("finding neighbors of %i in local table", int(nodeid.hex(), 16))
-        node = NodeData(id=key)
+        log.info("finding neighbors of %i in local table", int(id.hex(), 16))
         self.welcome_if_new(node)
-        neighbors = self.router.k_closest_to(node)
-        return list(map(tuple, neighbors))
+        return self.router.k_closest_to(key)
 
-    def exposed_find_value(self, nodeid, key):
+    def exposed_find_value(self, node: NodeData, key):
         """Maneja una solicitud FIND_VALUE y devuelve el valor si está almacenado"""
         value = self.storage.get(key, None)
         if value is None:
-            return self.exposed_find_node(nodeid, key)
-        node = NodeData(id=key)
-        self.welcome_if_new(node)
+            return self.exposed_find_node(
+                node, key
+            )  # Porque find_node y no find_value?
+        self.welcome_if_new(id)
         return {"value": value}
 
     def welcome_if_new(self, node: NodeData):
         """Añade un nodo a la tabla de enrutamiento si es nuevo"""
-        if not node in self.router:
+        if not node.id in self.router:
             return
 
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
-            keynode = NodeData(id=digest(key))
-            neighbors = self.router.k_closest_to(keynode)
+            keynode_id = id = digest(key)
+            neighbors = self.router.k_closest_to(keynode_id)
             if neighbors:
-                last = distance_to(neighbors[-1].id, keynode)
-                new_node_close = distance_to(node.id, keynode) < last
-                first = distance_to(neighbors[0].id, keynode)
-                this_closest = distance_to(self.id, keynode.id) < first
+                last = distance_to(neighbors[-1].id, keynode_id)
+                new_node_close = distance_to(node.id, keynode_id) < last
+                first = distance_to(neighbors[0].id, keynode_id)
+                this_closest = distance_to(self.id, keynode_id) < first
             if not neighbors or (new_node_close and this_closest):
                 asyncio.create_task(self.call_store(node, key, value))
         self.router.add(node)
@@ -89,7 +87,7 @@ class Node(ConnectionHandler):
         """Llama a FIND_NODE en otro nodo"""
         address = (node_to_ask.ip, node_to_ask.port)
         result = await asyncio.to_thread(
-            self._find_node, address, self.id, node_to_find.id
+            self._find_node, address, self.node_data, node_to_find.id
         )
         return self.handle_call_response(result, node_to_ask)
 
@@ -97,7 +95,7 @@ class Node(ConnectionHandler):
         """Llama a FIND_VALUE en otro nodo"""
         address = (node_to_ask.ip, node_to_ask.port)
         result = await asyncio.to_thread(
-            self._find_value, address, self.id, node_to_find.id
+            self._find_value, address, self.node_data, node_to_find.id
         )
         return self.handle_call_response(result, node_to_ask)
 

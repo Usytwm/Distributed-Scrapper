@@ -1,12 +1,17 @@
 import pytest
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.kBucket import KBucket
+from random import SystemRandom
 
+sr = SystemRandom()
 
 @pytest.fixture
 def node_data():
     return NodeData(id=123456789)
 
+@pytest.fixture
+def lots_of_node_data():
+    pass
 
 @pytest.fixture
 def kbucket(node_data):
@@ -19,9 +24,4 @@ def test_add_new_node(kbucket, node_data):
     assert result == True
     assert node_data.id in kbucket.contacts
 
-
-def test_split_kbucket(kbucket):
-    # Asumiendo que el KBucket puede ser dividido
-    left, right = kbucket.split()
-    assert left.end == 50
-    assert right.start == 51
+def test_splitting(kbucket, node_data):

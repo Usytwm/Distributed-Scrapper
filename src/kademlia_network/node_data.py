@@ -1,3 +1,8 @@
 from collections import namedtuple
+from typing import NamedTuple
 
-NodeData = namedtuple("Node", ["ip", "port", "id"])
+
+class NodeData(NamedTuple):
+    id: int
+    ip: str = ""
+    port: int = 0

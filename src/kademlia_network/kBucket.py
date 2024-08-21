@@ -8,8 +8,8 @@ class KBucket:
         self,
         owner_node: NodeData,
         bucket_max_size: int,
-        start,
-        end,
+        start: int,
+        end: int,
         can_be_splitted=True,
     ):
         self.owner_node = owner_node
@@ -36,9 +36,9 @@ class KBucket:
         self.contacts[node.id] = node
         return True
 
-    def remove(self, node) -> None:
-        self.time_heap.remove(node.id)
-        self.contacts.pop(node.id)
+    def remove(self, id) -> None:
+        self.time_heap.remove(id)
+        self.contacts.pop(id)
 
     def split(self) -> Tuple["KBucket", "KBucket"]:
         mid = (self.start + self.end) // 2
@@ -46,13 +46,12 @@ class KBucket:
             self.owner_node,
             self.max_size,
             self.start,
-            self.mid,
             (self.owner_node.id <= mid),
         )
         right = KBucket(
             self.owner_node,
             self.max_size,
-            self.mid + 1,
+            mid + 1,
             self.end,
             (self.owner_node.id > mid),
         )
@@ -69,19 +68,9 @@ class KBucket:
     def get_contacts(self):
         return list(self.contacts.values())
 
-    def __contains__(self, node):
-        return node.id in self.contacts
+    def __contains__(self, id):
+        return id in self.contacts
 
     def __check_least_seen_node__(self) -> bool:
         id = self.time_heap.get_least_seen()
         return self.owner_node.ping(self.contacts[id]), id
-
-    # Los metodos a continuacion para poder trabajar con SorteList
-    def __eq__(self, other: "KBucket"):
-        return self.start == other.start
-
-    def __hash__(self) -> int:
-        return hash(self.start)
-
-    def __lt__(self, other: "KBucket"):
-        return self.start < other.start
