@@ -3,10 +3,14 @@ from sortedcontainers import SortedList
 from src.kademlia_network.node_data import NodeData
 from typing import List
 
+NUMBER_OF_BITS = 4
+
 
 class Routing_Table:
     def __init__(self, owner_node, bucket_max_size: int):
-        self.buckets = {0: KBucket(owner_node, bucket_max_size, 0, (1 << 160))}
+        self.buckets = {
+            0: KBucket(owner_node, bucket_max_size, 0, (1 << NUMBER_OF_BITS))
+        }
         self.bucket_starts = SortedList([0])
         self.owner_node = owner_node
         self.bucket_max_size = bucket_max_size
