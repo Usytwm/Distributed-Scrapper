@@ -3,12 +3,13 @@ import logging
 import pickle
 import random
 
+from sortedcontainers import SortedList
 from node_data import NodeData
 from src.Interfaces.IStorage import IStorage
 from src.Interfaces.ConectionHandler import ConnectionHandler
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from utils.utils import digest
+from utils.utils import digest, gather_dict
 from rpyc.utils.server import ThreadedServer
 
 log = logging.getLogger(__name__)
@@ -140,6 +141,25 @@ class Node(ConnectionHandler):
             if result[0]
         ]
 
+        # Todo guardar en la routing table los nodos que me devolvieron el ping
+        # dicts = {}
+        # for peer in nodes:
+        #     self.router.add(peer)
+        #     dicts[peer.id] = self.call_find_node(peer, self.node)
+        # found = await gather_dict(dicts)
+        # nearest_nodes = []
+
+        # for _, response in found.items():
+        #     response = RPCFindResponse(response)
+        #     if response.happened():
+        #         nearest_nodes.extend(response.get_node_list())
+        # dict = {}
+        # for peer in nearest_nodes:
+        #     self.router.add(peer)
+        #     dict[peer.id] = self.call_find_node(peer, self.node)
+        # found = await gather_dict(dicts)
+        # return nearest_nodes
+
         # Todo Impolemetar como guardar la informacion de los nodos emn la red,
 
     async def get(self, key):
@@ -196,6 +216,52 @@ class Node(ConnectionHandler):
         }
         with open(fname, "wb") as f:
             pickle.dump(data, f)
+
+    async def lookup(self, id):
+        """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
+        log.info(f"Initiating lookup for key {id}")
+        node = NodeData(id=id)
+
+        # Inicializar el conjunto de nodos más cercanos a partir de la tabla de enrutamiento
+        nearest = SortedList(
+            [
+                (distance_to(id, contact.id), contact)
+                for contact in self.router.k_closest_to(node)
+            ]
+        )
+        if not nearest:
+            log.warning(f"No known neighbors to lookup key {id}")
+            return []
+
+        # Iniciar las consultas a los alpha nodos más cercanos
+        already_queried = set()
+
+        while True:
+            responses = []
+            # Seleccionamos hasta alpha nodos para consultar simultáneamente
+            tasks = [
+                self.call_find_node(n, node)
+                for _, n in nearest
+                if not n.id in already_queried
+            ]
+            nodes_to_query = [n for _, n in nearest if not n.id in already_queried]
+            results = await asyncio.gather(*tasks)
+            results = zip(results, nodes_to_query)
+
+            for result, n in results:
+                if result[0]:
+                    responses.extend([NodeData(n.ip, n.port, n.id) for n in result[1]])
+
+            for n in responses:
+                if n.id not in already_queried:
+                    nearest.add(distance_to(n.id, id), n)
+                    already_queried.add(n.id)
+
+            nearest = nearest[: self.ksize]
+            if all(x in already_queried for x in nearest):
+                break
+
+        return nearest
 
     @classmethod
     async def load_state(cls, fname, port, interface="0.0.0.0"):
