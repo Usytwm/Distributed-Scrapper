@@ -2,6 +2,7 @@ from kBucket import KBucket
 from sortedcontainers import SortedList
 from src.kademlia_network.Kdemlia_Node import Node
 from src.kademlia_network.node_data import NodeData
+from typing import List
 
 
 class Routing_Table:
@@ -26,11 +27,11 @@ class Routing_Table:
     def remove(self, node) -> None:
         self.bucket_of(node).remove(node)
 
-    def k_closest_to(self, node):
+    def k_closest_to(self, node) -> List[NodeData]:
         bucket_idx = self.bucket_of(node, True)
         closest = [
-            ((inactive, node.id ^ contact.id), contact)
-            for inactive, contact in self.buckets[bucket_idx].get_contacts()
+            (node.id ^ contact.id, contact)
+            for contact in self.buckets[bucket_idx].get_contacts()
         ]
         i = 1
         while (len(closest) < self.bucket_max_size) or closest[self.bucket_max_size][0][
@@ -40,26 +41,22 @@ class Routing_Table:
             if bucket_idx >= i:
                 closest.extend(
                     [
-                        ((inactive, node.id ^ contact.id), contact)
-                        for inactive, contact in self.buckets[
-                            bucket_idx - i
-                        ].get_contacts()
+                        (node.id ^ contact.id, contact)
+                        for contact in self.buckets[bucket_idx - i].get_contacts()
                     ]
                 )
             if bucket_idx + i < len(self.buckets):
                 closest.extend(
                     [
-                        ((inactive, node.id ^ contact.id), contact)
-                        for inactive, contact in self.buckets[
-                            bucket_idx + i
-                        ].get_contacts()
+                        (node.id ^ contact.id, contact)
+                        for contact in self.buckets[bucket_idx + i].get_contacts()
                     ]
                 )
             if len(closest) == previous_len:  # No hay nada mas que add
                 break
             i += 1
         closest.sort()
-        return [contact for contact in closest[: self.bucket_max_size]]
+        return [contact for _, contact in closest[: self.bucket_max_size]]
 
     def bucket_of(self, node, just_get_idx=False):
         if just_get_idx:
