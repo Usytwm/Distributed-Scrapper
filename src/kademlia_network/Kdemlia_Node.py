@@ -31,9 +31,8 @@ class Node(ConnectionHandler):
         self.id = node_id or digest(random.getrandbits(255))
         self.host = ip
         self.port = port
-        self.node = NodeData(self.host, self.port, self.id)
         self.ksize = ksize
-        self.node_data = NodeData(self.host, self.port, self.id)
+        self.node_data = NodeData(ip=self.host, port=self.port, id=self.id)
 
     def exposed_ping(self, node: NodeData):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
@@ -216,7 +215,7 @@ class Node(ConnectionHandler):
         return True
 
     def bootstrappable_k_closest(self):
-        neighbors = self.router.k_closest_to(self.node)
+        neighbors = self.router.k_closest_to(self.node_data)
         return [tuple(n)[-2:] for n in neighbors]
 
     def save_state(self, fname):
