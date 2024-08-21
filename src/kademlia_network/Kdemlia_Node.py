@@ -194,6 +194,18 @@ class Node(ConnectionHandler):
         if not nearest:
             log.warning(f"There are no known neighbors to set key {key}")
             return False
+        # spider = NodeSpiderCrawl(self.protocol, node, nearest,
+        #                          self.ksize, self.alpha)
+        # nodes = await spider.find()
+        # log.info("setting '%s' on %s", dkey.hex(), list(map(str, nodes)))
+
+        # # if this node is close too, then store here as well
+        # biggest = max([n.distance_to(node) for n in nodes])
+        # if self.node.distance_to(node) < biggest:
+        #     self.storage[dkey] = value
+        # results = [self.protocol.call_store(n, dkey, value) for n in nodes]
+        # # return true only if at least one store call succeeded
+        # return any(await asyncio.gather(*results))
         # Guardio en los vecinos mas cercanos a ese key
         tasks = [self.call_store(n, dkey, value) for n in nearest]
         await asyncio.gather(*tasks)
