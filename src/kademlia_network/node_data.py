@@ -1,5 +1,6 @@
 from collections import namedtuple
 from typing import NamedTuple
+import json
 
 
 # class NodeData(NamedTuple):
@@ -11,3 +12,11 @@ class NodeData:
         self.id = id
         self.ip = ip
         self.port = port
+    
+    def to_json(self):
+        return json.dumps({'id' : self.id, 'ip' : self.ip, 'port' : self.port})
+    
+    @classmethod
+    def from_json(cls, json_str):
+        dict = json.loads(json_str)
+        return cls(dict['id'], dict['ip'], dict['port'])

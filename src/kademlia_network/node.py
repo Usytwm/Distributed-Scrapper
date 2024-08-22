@@ -3,6 +3,11 @@ import threading
 import aiohttp
 from flask import Flask, jsonify, request
 import requests
+import sys
+from pathlib import Path
+
+path_to_root = Path(__file__).resolve().parents[2]
+sys.path.append(str(path_to_root))
 
 from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.node_data import NodeData
@@ -25,7 +30,7 @@ class Node:
         alpha=3,
     ):
         self.router = Routing_Table(self, ksize)
-        self.storage = storage or Storage()
+        self.storage = storage
         self.alpha = alpha
         self.id = node_id
         self.host = ip
@@ -39,7 +44,8 @@ class Node:
         @self.app.route("/ping", methods=["POST"])
         def ping():
             data = request.get_json(force=True)
-            response = self.ping(data.get("sender_node_data"))
+            node = NodeData.from_json(data.get("sender_node_data"))
+            response = self.ping(node)
             return jsonify(response), 200
 
         @self.app.route("/store", methods=["POST"])
@@ -91,7 +97,7 @@ class Node:
         """Llama a PING en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
         response = await self.call_rpc(
-            address, "ping", {"sender_node_data": self.node_data}
+            address, "ping", {"sender_node_data": self.node_data.to_json()}
         )
         if response is None:
             print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
@@ -228,13 +234,3 @@ class Node:
 def distance_to(node_1_id, node_2_id):
     # Calcula la distancia de un nodo a otro nodo usando XOR
     return node_1_id ^ node_2_id
-
-
-# Ejemplo de uso
-if __name__ == "__main__":
-    node = Node(node_id=1, ip="0.0.0.0", port=8000)
-    node.listen()  # Esto inicia el servidor Flask en un hilo separado
-
-    # Ejemplo de llamada a otro nodo
-    response = node.call_rpc("127.0.0.1:8001", "ping", {"node_id": 2})
-    print(response)
