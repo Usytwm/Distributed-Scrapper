@@ -17,37 +17,45 @@ import asyncio
 async def run_manual_routing():
     # Crear el primer nodo
     node1 = Node(node_id=1, ip="localhost", port=8000)
-    asyncio.create_task(node1.listen())
+    node1.listen()
     logging.info("Node 1 is running")
 
     # Crear el segundo nodo
     node2 = Node(node_id=2, ip="localhost", port=8001)
-    asyncio.create_task(node2.listen())
+    node2.listen()
     logging.info("Node 2 is running")
 
     # Crear el tercer nodo
     node3 = Node(node_id=3, ip="localhost", port=8002)
-    asyncio.create_task(node3.listen())
+    node3.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node4 = Node(node_id=4, ip="localhost", port=8003)
-    asyncio.create_task(node4.listen())
+    node4.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node5 = Node(node_id=5, ip="localhost", port=8004)
-    asyncio.create_task(node3.listen())
+    node3.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node6 = Node(node_id=6, ip="localhost", port=8005)
-    asyncio.create_task(node6.listen())
+    node6.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node7 = Node(node_id=7, ip="localhost", port=8006)
-    asyncio.create_task(node7.listen())
+    node7.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node8 = Node(node_id=8, ip="localhost", port=8007)
-    asyncio.create_task(node8.listen())
+    node8.listen()
+    logging.info("Node 3 is running")
+
+    node9 = Node(node_id=7, ip="localhost", port=8006)
+    node9.listen()
+    logging.info("Node 3 is running")
+    # Crear el tercer nodo
+    node10 = Node(node_id=8, ip="localhost", port=8007)
+    node10.listen()
     logging.info("Node 3 is running")
 
     # Esperar un momento para asegurarse de que todos los nodos están en marcha
@@ -62,6 +70,9 @@ async def run_manual_routing():
     node3.router.add(node8.node_data)
     node3.router.add(node1.node_data)
     node8.router.add(node7.node_data)
+    # value = await node1.call_ping(node2.node_data)
+
+    value2 = await node1.call_find_node(node2.node_data, node4.id)
     logging.info("Manually added Node 2 and Node 3 to the routing table of Node 1")
 
     # # Ahora, podemos intentar realizar algunas operaciones, como `set` y `get`

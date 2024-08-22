@@ -1,4 +1,5 @@
 import asyncio
+import pickle
 import threading
 import aiohttp
 from flask import Flask, jsonify, request
@@ -12,6 +13,7 @@ sys.path.append(str(path_to_root))
 from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.routing_table import Routing_Table
+from src.kademlia_network.storage import Storage
 from src.utils.utils import digest, gather_dict
 from sortedcontainers import SortedList
 import logging
@@ -30,7 +32,7 @@ class Node:
         alpha=3,
     ):
         self.router = Routing_Table(self, ksize)
-        self.storage = storage
+        self.storage = storage or Storage()
         self.alpha = alpha
         self.id = node_id
         self.host = ip
@@ -52,9 +54,7 @@ class Node:
         def store():
             data = request.get_json(force=True)
             node = NodeData.from_json(data.get("sender_node_data"))
-            response = self.store(
-                node, data.get("key"), data.get("value")
-            )
+            response = self.store(node, data.get("key"), data.get("value"))
             return jsonify(response), 200
 
         @self.app.route("/find_value", methods=["POST"])
@@ -141,7 +141,7 @@ class Node:
         response = await self.call_rpc(
             address,
             "find_node",
-            {"sender_node_data": self.node_data, "key": key},
+            {"sender_node_data": self.node_data.to_json(), "key": key},
         )
         if response is None:
             print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
@@ -163,8 +163,11 @@ class Node:
                 async with session.post(url, json=data, timeout=5) as response:
                     response.raise_for_status()
                     return await response.json()
-        except aiohttp.ClientTimeout:
+        except asyncio.TimeoutError:
             print(f"Timeout occurred when calling {url}")
+            return None
+        except aiohttp.ClientConnectorError as e:
+            print(f"Connection refused or network error when calling {url}: {e}")
             return None
         except aiohttp.ClientError as e:
             print(f"ClientError occurred when calling {url}: {e}")
@@ -232,6 +235,41 @@ class Node:
                 break
 
         return nearest
+
+    def save_state(self, fname):
+        """Guarda el estado del nodo en un archivo"""
+        log.info(f"Saving state to {fname}")
+        data = {
+            "ksize": self.ksize,
+            "alpha": self.alpha,
+            "id": self.id,
+            "storage": self.storage,
+            "neighbors": self.bootstrappable_k_closest(),
+            "router": self.router,
+        }
+        with open(fname, "wb") as f:
+            pickle.dump(data, f)
+
+    @classmethod
+    async def load_state(cls, fname, port, interface="0.0.0.0"):
+        """Carga el estado del nodo desde un archivo"""
+        log.info(f"Loading state from {fname}")
+        with open(fname, "rb") as f:
+            data = pickle.load(f)
+
+        node = cls(
+            node_id=data["id"],
+            storage=data["storage"],
+            ip=interface,
+            port=port,
+            ksize=data["ksize"],
+            alpha=data["alpha"],
+        )
+        node.router = data["router"]
+        await node.listen(port, interface)
+        if data["neighbors"]:
+            await node.bootstrap(data["neighbors"])
+        return node
 
 
 def distance_to(node_1_id, node_2_id):
