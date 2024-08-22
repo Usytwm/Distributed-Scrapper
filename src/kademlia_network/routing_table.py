@@ -5,7 +5,6 @@ from typing import List
 
 n_of_bits = 4
 
-
 class Routing_Table:
     def __init__(self, owner_node, bucket_max_size: int):
         self.buckets = {0: KBucket(owner_node, bucket_max_size, 0, (1 << n_of_bits))}
@@ -28,21 +27,22 @@ class Routing_Table:
     def k_closest_to(self, id: int) -> List[NodeData]:
         bucket = self.bucket_of(id)
         closest = [(id ^ contact.id, contact) for contact in bucket.get_contacts()]
+        bucket_idx = self.bucket_starts.bisect_right(id) - 1
         i = 1
         while len(closest) < self.bucket_max_size:
             previous_len = len(closest)
-            if bucket.id >= i:
+            if bucket_idx >= i:
                 closest.extend(
                     [
                         (id ^ contact.id, contact)
-                        for contact in self.buckets[bucket.id - i].get_contacts()
+                        for contact in self.buckets[bucket_idx - i].get_contacts()
                     ]
                 )
-            if bucket.id + i < len(self.buckets):
+            if bucket_idx + i < len(self.buckets):
                 closest.extend(
                     [
                         (id ^ contact.id, contact)
-                        for contact in self.buckets[bucket.id + i].get_contacts()
+                        for contact in self.buckets[bucket_idx + i].get_contacts()
                     ]
                 )
             if len(closest) == previous_len:  # No hay nada mas que add
