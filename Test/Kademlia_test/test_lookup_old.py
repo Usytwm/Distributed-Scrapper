@@ -10,44 +10,44 @@ sys.path.append(str(path_to_root))
 
 logging.basicConfig(level=logging.DEBUG)
 import asyncio
-from src.kademlia_network.Kdemlia_Node import Node, NodeData
+from src.kademlia_network.node import Node, NodeData
 import asyncio
 
 
 async def run_manual_routing():
     # Crear el primer nodo
     node1 = Node(node_id=1, ip="localhost", port=8000)
-    asyncio.create_task(node1.listen(node1.port, node1.host))
+    asyncio.create_task(node1.listen())
     logging.info("Node 1 is running")
 
     # Crear el segundo nodo
     node2 = Node(node_id=2, ip="localhost", port=8001)
-    asyncio.create_task(node2.listen(node2.port, node2.host))
+    asyncio.create_task(node2.listen())
     logging.info("Node 2 is running")
 
     # Crear el tercer nodo
     node3 = Node(node_id=3, ip="localhost", port=8002)
-    asyncio.create_task(node3.listen(node3.port, node3.host))
+    asyncio.create_task(node3.listen())
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node4 = Node(node_id=4, ip="localhost", port=8003)
-    asyncio.create_task(node4.listen(node4.port, node4.host))
+    asyncio.create_task(node4.listen())
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node5 = Node(node_id=5, ip="localhost", port=8004)
-    asyncio.create_task(node3.listen(node5.port, node5.host))
+    asyncio.create_task(node3.listen())
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node6 = Node(node_id=6, ip="localhost", port=8005)
-    asyncio.create_task(node6.listen(node6.port, node6.host))
+    asyncio.create_task(node6.listen())
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node7 = Node(node_id=7, ip="localhost", port=8006)
-    asyncio.create_task(node7.listen(node7.port, node3.host))
+    asyncio.create_task(node7.listen())
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node8 = Node(node_id=8, ip="localhost", port=8007)
-    asyncio.create_task(node8.listen(node8.port, node8.host))
+    asyncio.create_task(node8.listen())
     logging.info("Node 3 is running")
 
     # Esperar un momento para asegurarse de que todos los nodos están en marcha
