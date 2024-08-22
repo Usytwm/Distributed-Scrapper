@@ -22,7 +22,7 @@ class Node(ConnectionHandler):
         storage: IStorage = None,
         ip=None,
         port=None,
-        ksize: int = 20,
+        ksize: int = 2,
         alpha=3,
     ):
         self.router = Routing_Table(self, ksize)
@@ -31,9 +31,8 @@ class Node(ConnectionHandler):
         self.id = node_id or digest(random.getrandbits(255))
         self.host = ip
         self.port = port
-        self.node = NodeData(self.host, self.port, self.id)
         self.ksize = ksize
-        self.node_data = NodeData(self.host, self.port, self.id)
+        self.node_data = NodeData(ip=self.host, port=self.port, id=self.id)
 
     def exposed_ping(self, node: NodeData):
         """Maneja una solicitud PING y devuelve el ID del nodo fuente"""
@@ -51,7 +50,7 @@ class Node(ConnectionHandler):
 
     def exposed_find_node(self, node: NodeData, key):
         """Maneja una solicitud FIND_NODE y devuelve los vecinos más cercanos"""
-        log.info("finding neighbors of %i in local table", int(id.hex(), 16))
+        log.info("finding neighbors of %i in local table", key)
         self.welcome_if_new(node)
         return self.router.k_closest_to(key)
 
@@ -174,7 +173,7 @@ class Node(ConnectionHandler):
             return self.storage.get(dkey)
 
         node = NodeData(id=dkey)
-        nearest = self.router.k_closest_to(node)
+        nearest = self.router.k_closest_to(node.id)
         if not nearest:
             log.warning(f"There are no known neighbors to get key {key}")
             return None
@@ -194,7 +193,7 @@ class Node(ConnectionHandler):
         self.storage[dkey] = value
 
         node = NodeData(id=dkey)
-        nearest = self.router.k_closest_to(node)
+        nearest = self.router.k_closest_to(node.id)
         if not nearest:
             log.warning(f"There are no known neighbors to set key {key}")
             return False
@@ -216,7 +215,7 @@ class Node(ConnectionHandler):
         return True
 
     def bootstrappable_k_closest(self):
-        neighbors = self.router.k_closest_to(self.node)
+        neighbors = self.router.k_closest_to(self.node_data.id)
         return [tuple(n)[-2:] for n in neighbors]
 
     def save_state(self, fname):
@@ -242,7 +241,7 @@ class Node(ConnectionHandler):
         nearest = SortedList(
             [
                 (distance_to(id, contact.id), contact)
-                for contact in self.router.k_closest_to(node)
+                for contact in self.router.k_closest_to(node.id)
             ]
         )
         if not nearest:

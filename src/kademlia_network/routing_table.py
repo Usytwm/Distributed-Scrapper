@@ -52,7 +52,16 @@ class Routing_Table:
         return [contact for _, contact in closest[: self.bucket_max_size]]
 
     def bucket_of(self, id: int, just_get_idx=False) -> KBucket:
-        return self.buckets[self.bucket_starts[self.bucket_starts.bisect_right(id) - 1]]
+        try:
+            print(self.bucket_starts)
+            print(self.buckets)
+            print(self.bucket_starts.bisect_right(id) - 1)
+            return self.buckets[
+                self.bucket_starts[self.bucket_starts.bisect_right(id) - 1]
+            ]
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
 
     def split_bucket(self, bucket: KBucket):
         left_bucket, right_bucket = bucket.split()
