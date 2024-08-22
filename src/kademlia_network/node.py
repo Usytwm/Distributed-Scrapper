@@ -51,21 +51,24 @@ class Node:
         @self.app.route("/store", methods=["POST"])
         def store():
             data = request.get_json(force=True)
+            node = NodeData.from_json(data.get("sender_node_data"))
             response = self.store(
-                data.get("sender_node_data"), data.get("key"), data.get("value")
+                node, data.get("key"), data.get("value")
             )
             return jsonify(response), 200
 
         @self.app.route("/find_value", methods=["POST"])
         def find_value():
             data = request.get_json(force=True)
-            response = self.find_value(data.get("key"))
+            node = NodeData.from_json(data.get("sender_node_data"))
+            response = self.find_value(node, data.get("key"))
             return jsonify(response), 200
 
         @self.app.route("/find_node", methods=["POST"])
         def find_node():
             data = request.get_json(force=True)
-            response = self.find_node(data.get("sender_node_data"), data.get("key"))
+            node = NodeData.from_json(data.get("sender_node_data"))
+            response = self.find_node(node, data.get("key"))
             return jsonify(response), 200
 
     def ping(self, node: NodeData):
@@ -90,7 +93,7 @@ class Node:
     def find_node(self, node: NodeData, key):
         log.info("finding neighbors of %i in local table", key)
         self.welcome_if_new(node)
-        closest_nodes = self.router.k_closest_to(key)
+        closest_nodes = [node.to_json() for node in self.router.k_closest_to(key)]
         return {"status": "OK", "nodes": closest_nodes}
 
     async def call_ping(self, node_to_ask: NodeData):
@@ -143,7 +146,7 @@ class Node:
         if response is None:
             print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
-        return response.get("nodes")
+        return [NodeData.from_json(node) for node in response.get("nodes")]
 
     def listen(self):
         # Correr el servidor Flask en un hilo separado para no bloquear
