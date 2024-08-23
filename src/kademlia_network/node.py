@@ -31,13 +31,13 @@ class Node:
         ksize: int = 2,
         alpha=3,
     ):
-        self.router = Routing_Table(self, ksize)
-        self.storage = storage or Storage()
+        self.storage = storage
         self.alpha = alpha
         self.id = node_id
         self.host = ip
         self.port = port
         self.ksize = ksize
+        self.router = Routing_Table(self, ksize)
         self.node_data = NodeData(ip=self.host, port=self.port, id=self.id)
         self.app = Flask(__name__)
         self.configure_endpoints()
