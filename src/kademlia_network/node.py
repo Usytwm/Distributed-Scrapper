@@ -17,6 +17,7 @@ from src.kademlia_network.storage import Storage
 from src.utils.utils import digest, gather_dict, digest_to_int
 from sortedcontainers import SortedList
 import logging
+from typing import List
 
 log = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ class Node:
                             nearest.add((distance_to(n.id, id), n))
                             already_inserted.add(n.id)
 
-            nearest = nearest[: self.ksize]
+            del nearest[self.ksize :]
             if all(x.id in already_queried for _, x in nearest):
                 break
 
@@ -256,38 +257,18 @@ class Node:
         with open(fname, "wb") as f:
             pickle.dump(data, f)
 
-    async def bootstrap(self, addrs):
+    async def bootstrap(self, nodes: List[NodeData]):
         """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
-        log.debug(f"Attempting to bootstrap node with {len(addrs)} initial contacts")
-        tasks = [self.call_ping(NodeData(ip=addr[0], port=addr[1])) for addr in addrs]
-        results = await asyncio.gather(*tasks)
-        # eliminar cuaalquier nodo que no respondio o o se pudo conytactar haciendo ping
-        nodes = [
-            NodeData(addr[0], addr[1], result[1])
-            for result, addr in zip(results, addrs)
-            if result
-        ]
-
-        # Todo guardar en la routing table los nodos que me devolvieron el ping
-        # dicts = {}
-        # for peer in nodes:
-        #     self.router.add(peer)
-        #     dicts[peer.id] = self.call_find_node(peer, self.node)
-        # found = await gather_dict(dicts)
-        # nearest_nodes = []
-
-        # for _, response in found.items():
-        #     response = RPCFindResponse(response)
-        #     if response.happened():
-        #         nearest_nodes.extend(response.get_node_list())
-        # dict = {}
-        # for peer in nearest_nodes:
-        #     self.router.add(peer)
-        #     dict[peer.id] = self.call_find_node(peer, self.node)
-        # found = await gather_dict(dicts)
-        # return nearest_nodes
-
-        # Todo Impolemetar como guardar la informacion de los nodos emn la red,
+        log.debug(f"Attempting to bootstrap node with {len(nodes)} initial contacts")
+        tasks = []
+        for node in nodes:
+            await self.router.add(node)
+            tasks.append(self.call_ping(node))
+        await asyncio.gather(*tasks)  # Todo MANEJAR LOS PING FALSOS
+        closest = await self.lookup(self.id)
+        for contact in closest:
+            await self.router.add(contact)
+        await self.router.poblate()
 
     def bootstrappable_k_closest(self):
         neighbors = self.router.k_closest_to(self.node_data.id)

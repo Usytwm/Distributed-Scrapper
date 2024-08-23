@@ -16,7 +16,7 @@ class Time_Heap:
         id = self.heap.popleft()
         while self.times_in_heap[id] != 1:
             self.times_in_heap[id] = min(self.times_in_heap[id] - 1, 0)
-            id = deque.popleft()
+            id = self.heap.popleft()
         self.remove(id)
         return id
 

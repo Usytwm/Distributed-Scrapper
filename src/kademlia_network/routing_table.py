@@ -2,6 +2,8 @@ from src.kademlia_network.kBucket import KBucket
 from sortedcontainers import SortedList
 from src.kademlia_network.node_data import NodeData
 from typing import List
+import random
+import asyncio
 
 n_of_bits = 4
 
@@ -14,6 +16,24 @@ class Routing_Table:
 
     async def add(self, node: NodeData) -> bool:
         return await self.bucket_of(node.id).add(node)
+
+    async def poblate(self):
+        id = 1
+        while len(self.buckets[id].contacts):
+            id += 1
+        tasks = []
+        while id < len(self.buckets):
+            random_id = (
+                random.randint((1 << id), (1 << (id + 1)) - 1) ^ self.owner_node.id
+            )
+            tasks.append(self.owner_node.lookup(random_id))
+            id += 1
+        results = await asyncio.gather(*tasks)
+        tasks = []
+        for result in results:
+            for contact in result:
+                tasks.append(self.add(contact))
+        await asyncio.gather(*tasks)
 
     def remove(self, id: int) -> None:
         self.bucket_of(id).remove(id)
