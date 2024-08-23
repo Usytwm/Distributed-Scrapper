@@ -81,14 +81,18 @@ async def run_manual_routing():
     await node1.router.add(node7.node_data)
     await node1.router.add(node8.node_data)
     await node1.router.add(node9.node_data)
+    await node3.router.add(node1.node_data)
+    await node2.router.add(node1.node_data)
 
     print(node1.router)
     # value = await node1.call_ping(node2.node_data)
     # value2 = await node2.call_find_node(node1.node_data, node4.id)
     value3 = await node3.call_store(node1.node_data, "Ochoa", "mendiata")
     value4 = await node5.call_find_value(node1.node_data, "Ochoa")
+    result5 = await node3.lookup(node1.id)
+    result6 = await node2.lookup(node3.id)
 
-    logging.info("Manually added Node 2 and Node 3 to the routing table of Node 1")
+    # logging.info("Manually added Node 2 and Node 3 to the routing table of Node 1")
 
     # # Ahora, podemos intentar realizar algunas operaciones, como `set` y `get`
     # await node1.set("key1", "value1")
@@ -99,8 +103,8 @@ async def run_manual_routing():
     # logging.info(f"Value retrieved by Node 2: {value}")
 
     # Ejecutar un lookup en Node 3 para buscar Node 1 ID
-    result = await node3.lookup(node1.id)
-    logging.info(f"Lookup result on Node 3 for Node 1 ID: {result}")
+
+    logging.info(f"Lookup result on Node 3 for Node 1 ID: {result5}")
 
     # Mantener los nodos activos
     while True:

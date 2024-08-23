@@ -212,31 +212,27 @@ class Node:
         already_queried = set()
 
         while True:
-            responses = []
             # Seleccionamos hasta alpha nodos para consultar simultáneamente
             tasks = [
-                self.call_find_node(n, node)
+                self.call_find_node(n, node.id)
                 for _, n in nearest
                 if not n.id in already_queried
             ]
-            nodes_to_query = [n for _, n in nearest if not n.id in already_queried]
+            for n in [n for _, n in nearest if not n.id in already_queried]:
+                already_queried.add(n.id)
             results = await asyncio.gather(*tasks)
-            results = zip(results, nodes_to_query)
 
-            for result, n in results:
-                if result[0]:
-                    responses.extend([NodeData(n.ip, n.port, n.id) for n in result[1]])
-
-            for n in responses:
-                if n.id not in already_queried:
-                    nearest.add(distance_to(n.id, id), n)
-                    already_queried.add(n.id)
+            for result in results:
+                if result:
+                    for n in result:
+                        if n.id not in already_queried:
+                            nearest.add((distance_to(n.id, id), n))
 
             nearest = nearest[: self.ksize]
-            if all(x in already_queried for x in nearest):
+            if all(x.id in already_queried for _, x in nearest):
                 break
 
-        return nearest
+        return [contact for _, contact in nearest]
 
     def save_state(self, fname):
         """Guarda el estado del nodo en un archivo"""

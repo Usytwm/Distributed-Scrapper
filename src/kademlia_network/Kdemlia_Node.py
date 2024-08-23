@@ -25,7 +25,7 @@ class Node(ConnectionHandler):
         ksize: int = 2,
         alpha=3,
     ):
-        self.router = Routing_Table(self, ksize)
+        self.router = Routing_.Table(self, ksize)
         self.storage = storage or Storage()
         self.alpha = alpha
         self.id = node_id or digest(random.getrandbits(255))
