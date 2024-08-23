@@ -35,7 +35,7 @@ async def run_manual_routing():
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node5 = Node(node_id=5, ip="localhost", port=8004)
-    node3.listen()
+    node5.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
     node6 = Node(node_id=6, ip="localhost", port=8005)
@@ -50,26 +50,39 @@ async def run_manual_routing():
     node8.listen()
     logging.info("Node 3 is running")
 
-    node9 = Node(node_id=7, ip="localhost", port=8006)
+    node9 = Node(node_id=9, ip="localhost", port=8008)
     node9.listen()
     logging.info("Node 3 is running")
     # Crear el tercer nodo
-    node10 = Node(node_id=8, ip="localhost", port=8007)
+    node10 = Node(node_id=10, ip="localhost", port=8010)
     node10.listen()
     logging.info("Node 3 is running")
 
+    # nodes = [node1, node2, node3, node3, node5, node6, node7, node8, node9, node10]
+
+    # def test_2(routing_table, lots_of_nodes):
+    #     for node in lots_of_nodes:
+    #         routing_table.add(node)
+    #     k_closest = routing_table.k_closest_to(8)
+    #     for contact in k_closest:
+    #         print(contact.id)
+
+    # test_correct_splitting(routing_table, lots_of_nodes)
+    # test_2(node1.router, nodes)
+
     # Esperar un momento para asegurarse de que todos los nodos están en marcha
-    await asyncio.sleep(3)
 
     # Agregar manualmente node2 y node3 a la tabla de enrutamiento de node1
-    node1.router.add(node2.node_data)
-    node1.router.add(node3.node_data)
-    node3.router.add(node2.node_data)
-    node1.router.add(node7.node_data)
-    node1.router.add(node4.node_data)
-    node3.router.add(node8.node_data)
-    node3.router.add(node1.node_data)
-    node8.router.add(node7.node_data)
+    await node1.router.add(node2.node_data)
+    await node1.router.add(node3.node_data)
+    await node1.router.add(node4.node_data)
+    await node1.router.add(node5.node_data)
+    await node1.router.add(node6.node_data)
+    await node1.router.add(node7.node_data)
+    await node1.router.add(node8.node_data)
+    await node1.router.add(node9.node_data)
+
+    print(node1.router)
     # value = await node1.call_ping(node2.node_data)
     value2 = await node2.call_find_node(node1.node_data, node4.id)
     logging.info("Manually added Node 2 and Node 3 to the routing table of Node 1")

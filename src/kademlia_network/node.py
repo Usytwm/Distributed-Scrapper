@@ -31,7 +31,7 @@ class Node:
         ksize: int = 2,
         alpha=3,
     ):
-        self.storage = storage
+        self.storage = storage or Storage()
         self.alpha = alpha
         self.id = node_id
         self.host = ip
@@ -160,7 +160,7 @@ class Node:
         url = f"http://{node_address}/{endpoint}"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=data, timeout=5) as response:
+                async with session.post(url, json=data) as response:
                     response.raise_for_status()
                     return await response.json()
         except asyncio.TimeoutError:
