@@ -9,7 +9,7 @@ n_of_bits = 4
 class Routing_Table:
     def __init__(self, owner_node, bucket_max_size: int):
         self.owner_node = owner_node
-        self.buckets = [KBucket(owner_node, bucket_max_size)] * n_of_bits
+        self.buckets = [KBucket(owner_node, bucket_max_size) for _ in range(n_of_bits)]
         self.bucket_max_size = bucket_max_size
 
     async def add(self, node: NodeData) -> bool:
