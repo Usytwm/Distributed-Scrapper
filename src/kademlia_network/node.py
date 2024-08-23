@@ -185,15 +185,15 @@ class Node:
 
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
-            keynode_id = digest(key)
-            neighbors = self.router.k_closest_to(keynode_id)
+            # keynode_id = digest_to_int(key)
+            neighbors = self.router.k_closest_to(key)
             if neighbors:
-                last = distance_to(neighbors[-1].id, keynode_id)
-                new_node_close = distance_to(node.id, keynode_id) < last
-                first = distance_to(neighbors[0].id, keynode_id)
-                this_closest = distance_to(self.id, keynode_id) < first
+                last = distance_to(neighbors[-1].id, key)
+                new_node_close = distance_to(node.id, key) < last
+                first = distance_to(neighbors[0].id, key)
+                this_closest = distance_to(self.id, key) < first
             if not neighbors or (new_node_close and this_closest):
-                asyncio.create_task(self.call_store(node, key, value))
+                await asyncio.create_task(self.call_store(node, key, value))
         await self.router.add(node)
 
     async def lookup(self, id):
@@ -214,6 +214,7 @@ class Node:
 
         # Iniciar las consultas a los alpha nodos más cercanos
         already_queried = set()
+        already_inserted = set()
 
         while True:
             # Seleccionamos hasta alpha nodos para consultar simultáneamente
@@ -229,8 +230,11 @@ class Node:
             for result in results:
                 if result:
                     for n in result:
-                        if n.id not in already_queried:
+                        if (n.id not in already_queried) and (
+                            n.id not in already_inserted
+                        ):
                             nearest.add((distance_to(n.id, id), n))
+                            already_inserted.add(n.id)
 
             nearest = nearest[: self.ksize]
             if all(x.id in already_queried for _, x in nearest):
@@ -292,16 +296,18 @@ class Node:
     async def set(self, key, value):
         """Almacena un valor en la red"""
         log.info(f"Setting '{key}' = '{value}' on network")
-        closest = await self.lookup(digest_to_int(key))
-        tasks = [self.call_store(contact, key, value) for contact in closest]
+        dkey = digest_to_int(key, num_bits=4)
+        closest = await self.lookup(dkey)
+        tasks = [self.call_store(contact, dkey, value) for contact in closest]
         await asyncio.gather(*tasks)
         return True
 
     async def get(self, key):
         """Busca un valor en la red"""
         log.info(f"Looking up key {key}")
-        closest = await self.lookup(digest_to_int(key))
-        tasks = [self.call_find_value(contact, key) for contact in closest]
+        dkey = digest_to_int(key, num_bits=4)
+        closest = await self.lookup()
+        tasks = [self.call_find_value(contact, dkey) for contact in closest]
         results = await asyncio.gather(*tasks)
         dict_results = {}
         for result, is_value in results:

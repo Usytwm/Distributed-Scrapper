@@ -1,4 +1,9 @@
 import pytest
+import sys
+from pathlib import Path
+
+path_to_root = Path(__file__).resolve().parents[2]
+sys.path.append(str(path_to_root))
 from src.kademlia_network.Kdemlia_Node import Node
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.node_data import NodeData
@@ -27,7 +32,7 @@ def lots_of_nodes():
         NodeData(id=6),
         NodeData(id=14),
         NodeData(id=9),
-        NodeData(id=10)
+        NodeData(id=10),
     ]
 
 
