@@ -14,7 +14,7 @@ from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from src.utils.utils import digest, gather_dict
+from src.utils.utils import digest, gather_dict, digest_to_int
 from sortedcontainers import SortedList
 import logging
 
@@ -134,7 +134,11 @@ class Node:
         if response is None:
             print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
-        return response.get("value") if response.get("value") else response.get("nodes")
+        return (
+            (response.get("value"), True)
+            if response.get("value")
+            else (response.get("nodes"), False)
+        )
 
     async def call_find_node(self, node_to_ask: NodeData, key):
         """Llama a FIND_NODE en otro nodo"""
@@ -284,6 +288,27 @@ class Node:
     def bootstrappable_k_closest(self):
         neighbors = self.router.k_closest_to(self.node_data.id)
         return [tuple(n)[-2:] for n in neighbors]
+
+    async def set(self, key, value):
+        """Almacena un valor en la red"""
+        log.info(f"Setting '{key}' = '{value}' on network")
+        closest = await self.lookup(digest_to_int(key))
+        tasks = [self.call_store(contact, key, value) for contact in closest]
+        await asyncio.gather(*tasks)
+        return True
+
+    async def get(self, key):
+        """Busca un valor en la red"""
+        log.info(f"Looking up key {key}")
+        closest = await self.lookup(digest_to_int(key))
+        tasks = [self.call_find_value(contact, key) for contact in closest]
+        results = await asyncio.gather(*tasks)
+        dict_results = {}
+        for result, is_value in results:
+            if is_value:
+                dict_results[result] = dict_results.get(result, 0) + 1
+        dict_results = list(dict_results.items())
+        return max(dict_results, key=lambda tpl: tpl[1])[0]
 
     @classmethod
     async def load_state(cls, fname, port, interface="0.0.0.0"):

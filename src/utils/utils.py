@@ -17,6 +17,14 @@ def digest(string):
     return hashlib.sha1(string).digest()
 
 
+def digest_to_int(string, num_bits=160):
+    # Calcula el hash SHA-1 de una cadena y devuelve su digest truncado a `num_bits` bits
+    full_digest = digest(string)
+
+    # Convertir los bytes truncados en un número entero
+    return int.from_bytes(full_digest, byteorder="big") % (1 << num_bits)
+
+
 def shared_prefix(args):
     # Encuentra el prefijo compartido más largo entre varias cadenas
     i = 0
