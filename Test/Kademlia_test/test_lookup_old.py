@@ -71,8 +71,7 @@ async def run_manual_routing():
     node3.router.add(node1.node_data)
     node8.router.add(node7.node_data)
     # value = await node1.call_ping(node2.node_data)
-
-    value2 = await node1.call_find_node(node2.node_data, node4.id)
+    value2 = await node2.call_find_node(node1.node_data, node4.id)
     logging.info("Manually added Node 2 and Node 3 to the routing table of Node 1")
 
     # # Ahora, podemos intentar realizar algunas operaciones, como `set` y `get`
