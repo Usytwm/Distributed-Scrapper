@@ -18,11 +18,16 @@ def routing_table(node):
 @pytest.fixture
 def lots_of_nodes():
     return [
-        NodeData(id=5),
-        NodeData(id=9),
-        NodeData(id=14),
-        NodeData(id=11),
+        NodeData(id=2),
         NodeData(id=3),
+        NodeData(id=7),
+        NodeData(id=4),
+        NodeData(id=11),
+        NodeData(id=5),
+        NodeData(id=6),
+        NodeData(id=14),
+        NodeData(id=9),
+        NodeData(id=10)
     ]
 
 
