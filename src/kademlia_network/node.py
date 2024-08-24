@@ -1,6 +1,9 @@
 import asyncio
+import os
 import pickle
-import threading
+import random
+import signal
+from threading import Thread
 import aiohttp
 from flask import Flask, jsonify, request
 import requests
@@ -14,9 +17,10 @@ from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from src.utils.utils import digest, gather_dict, digest_to_int
+from src.utils.utils import N_OF_BITS, digest, gather_dict, digest_to_int
 from sortedcontainers import SortedList
 import logging
+import requests
 from typing import List
 
 log = logging.getLogger(__name__)
@@ -25,7 +29,7 @@ log = logging.getLogger(__name__)
 class Node:
     def __init__(
         self,
-        node_id,
+        node_id=None,
         storage: IStorage = None,
         ip=None,
         port=None,
@@ -34,7 +38,11 @@ class Node:
     ):
         self.storage = storage or Storage()
         self.alpha = alpha
-        self.id = node_id
+        self.id = (
+            node_id
+            if not (node_id is None)
+            else random.randint(0, (1 << N_OF_BITS) - 1)
+        )
         self.host = ip
         self.port = port
         self.ksize = ksize
@@ -43,65 +51,79 @@ class Node:
         self.app = Flask(__name__)
         self.configure_endpoints()
 
+    def listen(self):
+        def run_app():
+            self.app.run(host=self.host, port=self.port, threaded=True)
+
+        thread = Thread(target=run_app)
+        thread.start()
+
+    def stop(self, save_file="data\\node_state.pkl"):
+        """Detiene el servidor y guarda el estado"""
+        log.info("Deteniendo el servidor y guardando el estado...")
+        self.save_state(save_file)
+        # Enviar señal para detener el servidor Flask
+        os.kill(os.getpid(), signal.SIGINT)
+
     def configure_endpoints(self):
         @self.app.route("/ping", methods=["POST"])
         def ping():
             data = request.get_json(force=True)
             node = NodeData.from_json(data.get("sender_node_data"))
-            response = asyncio.run(self.ping(node))
+            response = self.ping(node)
             return jsonify(response), 200
 
         @self.app.route("/store", methods=["POST"])
         def store():
             data = request.get_json(force=True)
             node = NodeData.from_json(data.get("sender_node_data"))
-            response = asyncio.run(self.store(node, data.get("key"), data.get("value")))
+            response = self.store(node, data.get("key"), data.get("value"))
             return jsonify(response), 200
 
         @self.app.route("/find_value", methods=["POST"])
         def find_value():
             data = request.get_json(force=True)
             node = NodeData.from_json(data.get("sender_node_data"))
-            response = asyncio.run(self.find_value(node, data.get("key")))
+            response = self.find_value(node, data.get("key"))
             return jsonify(response), 200
 
         @self.app.route("/find_node", methods=["POST"])
         def find_node():
             data = request.get_json(force=True)
             node = NodeData.from_json(data.get("sender_node_data"))
-            response = asyncio.run(self.find_node(node, data.get("key")))
+            response = self.find_node(node, data.get("key"))
             return jsonify(response), 200
 
-    async def ping(self, node: NodeData):
-        await self.welcome_if_new(node)
+    def ping(self, node: NodeData):
+        self.welcome_if_new(node)
         return {"status": "OK"}
 
-    async def store(self, node: NodeData, key, value):
-        await self.welcome_if_new(node)
+    def store(self, node: NodeData, key, value):
+        self.welcome_if_new(node)
         log.debug(
             "got a store request from node %s, storing '%s'='%s'", node.id, key, value
         )
         self.storage[key] = value
         return {"status": "OK"}
 
-    async def find_value(self, node: NodeData, key):
+    def find_value(self, node: NodeData, key):
         value = self.storage.get(key)
         if value is None:
-            node = await self.find_node(node, key)
+            node = self.find_node(node, key)
             return node
-        await self.welcome_if_new(node)
+        self.welcome_if_new(node)
         return {"status": "OK", "value": value}
 
-    async def find_node(self, node: NodeData, key):
+    def find_node(self, node: NodeData, key):
         log.info("finding neighbors of %i in local table", key)
-        await self.welcome_if_new(node)
+        self.welcome_if_new(node)
         closest_nodes = [node.to_json() for node in self.router.k_closest_to(key)]
         return {"status": "OK", "nodes": closest_nodes}
 
-    async def call_ping(self, node_to_ask: NodeData):
+    def call_ping(self, node_to_ask: NodeData):
         """Llama a PING en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
-        response = await self.call_rpc(
+        response = self.call_rpc(
             address, "ping", {"sender_node_data": self.node_data.to_json()}
         )
         if response is None:
@@ -110,10 +132,10 @@ class Node:
 
         return response.get("status") == "OK"
 
-    async def call_store(self, node_to_ask: NodeData, key, value):
+    def call_store(self, node_to_ask: NodeData, key, value):
         """Llama a STORE en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
-        response = await self.call_rpc(
+        response = self.call_rpc(
             address,
             "store",
             {"sender_node_data": self.node_data.to_json(), "key": key, "value": value},
@@ -124,10 +146,10 @@ class Node:
 
         return response.get("status") == "OK"
 
-    async def call_find_value(self, node_to_ask: NodeData, key):
+    def call_find_value(self, node_to_ask: NodeData, key):
         """Llama a FIND_VALUE en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
-        response = await self.call_rpc(
+        response = self.call_rpc(
             address,
             "find_value",
             {"sender_node_data": self.node_data.to_json(), "key": key},
@@ -141,10 +163,10 @@ class Node:
             else (response.get("nodes"), False)
         )
 
-    async def call_find_node(self, node_to_ask: NodeData, key):
+    def call_find_node(self, node_to_ask: NodeData, key):
         """Llama a FIND_NODE en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
-        response = await self.call_rpc(
+        response = self.call_rpc(
             address,
             "find_node",
             {"sender_node_data": self.node_data.to_json(), "key": key},
@@ -154,34 +176,25 @@ class Node:
             return False
         return [NodeData.from_json(node) for node in response.get("nodes")]
 
-    def listen(self):
-        # Correr el servidor Flask en un hilo separado para no bloquear
-        def run_app():
-            self.app.run(host=self.host, port=self.port, threaded=True)
-
-        thread = threading.Thread(target=run_app)
-        thread.start()
-
-    async def call_rpc(self, node_address, endpoint, data):
+    def call_rpc(self, node_address, endpoint, data):
         url = f"http://{node_address}/{endpoint}"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=data) as response:
-                    response.raise_for_status()
-                    return await response.json()
-        except asyncio.TimeoutError:
+            response = requests.post(url, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.Timeout:
             print(f"Timeout occurred when calling {url}")
             return None
-        except aiohttp.ClientConnectorError as e:
+        except requests.ConnectionError as e:
             print(f"Connection refused or network error when calling {url}: {e}")
             return None
-        except aiohttp.ClientError as e:
-            print(f"ClientError occurred when calling {url}: {e}")
+        except requests.RequestException as e:
+            print(f"RequestException occurred when calling {url}: {e}")
             return None
 
-    async def welcome_if_new(self, node: NodeData):
+    def welcome_if_new(self, node: NodeData):
         """Añade un nodo a la tabla de enrutamiento si es nuevo"""
-        if node.id in self.router:
+        if node.id in self.router or node.id == self.id:
             return
 
         log.info("never seen %s before, adding to router", node)
@@ -194,11 +207,12 @@ class Node:
                 first = distance_to(neighbors[0].id, key)
                 this_closest = distance_to(self.id, key) < first
             if not neighbors or (new_node_close and this_closest):
-                await asyncio.create_task(self.call_store(node, key, value))
-        await self.router.add(node)
+                self.call_store(node, key, value)
+        self.router.add(node)
 
-    async def lookup(self, id):
+    def lookup(self, id):
         """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
+
         log.info(f"Initiating lookup for key {id}")
         node = NodeData(id=id)
 
@@ -216,17 +230,23 @@ class Node:
         # Iniciar las consultas a los alpha nodos más cercanos
         already_queried = set()
         already_inserted = set()
+        results = []
+
+        def call_find_node_and_save(n, id):
+            results.append(self.call_find_node(n, id))
 
         while True:
             # Seleccionamos hasta alpha nodos para consultar simultáneamente
-            tasks = [
-                self.call_find_node(n, node.id)
-                for _, n in nearest
-                if not n.id in already_queried
-            ]
-            for n in [n for _, n in nearest if not n.id in already_queried]:
-                already_queried.add(n.id)
-            results = await asyncio.gather(*tasks)
+            threads = []
+            for _, n in nearest:
+                if not n.id in already_queried:
+                    thread = Thread(target=call_find_node_and_save, args=(n, node.id))
+                    threads.append(thread)
+                    thread.start()
+                    already_queried.add(n.id)
+
+            for thread in threads:
+                thread.join()
 
             for result in results:
                 if result:
@@ -243,62 +263,97 @@ class Node:
 
         return [contact for _, contact in nearest]
 
+    def bootstrap(self, nodes: List[NodeData]):
+        """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
+        log.debug(f"Attempting to bootstrap node with {len(nodes)} initial contacts")
+        threads = []
+        for node in nodes:
+            thread = Thread(target=self.router.add, args=(node,))
+            threads.append(thread)
+            thread.start()
+            thread = Thread(target=self.call_ping, args=(node,))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.lookup(self.id)
+        self.router.poblate()
+
+    def set(self, key, value):
+        """Almacena un valor en la red"""
+        log.info(f"Setting '{key}' = '{value}' on network")
+        dkey = digest_to_int(key, num_bits=N_OF_BITS)
+        closest = self.lookup(dkey)
+        threads = []
+        for contact in closest:
+            thread = Thread(target=self.call_store, args=(contact, dkey, value))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        return True
+
+    def get(self, dkey):
+        """Busca un valor en la red"""
+        log.info(f"Looking up key {dkey}")
+        dkey = digest_to_int(dkey, num_bits=N_OF_BITS)
+        closest = self.lookup(dkey)
+        results = []
+
+        def call_find_value_and_save(contact, dkey):
+            results.append(self.call_find_value(contact, dkey))
+
+        threads = []
+        for contact in closest:
+            thread = Thread(target=call_find_value_and_save, args=(contact, dkey))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        dict_results = {}
+        for result, is_value in results:
+            if is_value:
+                dict_results[result] = dict_results.get(result, 0) + 1
+        dict_results = list(dict_results.items())
+        return (
+            max(dict_results, key=lambda tpl: tpl[1])[0]
+            if len(dict_results) > 0
+            else False
+        )
+
+    def bootstrappable_k_closest(self):
+        return self.router.k_closest_to(self.node_data.id)
+
     def save_state(self, fname):
         """Guarda el estado del nodo en un archivo"""
         log.info(f"Saving state to {fname}")
+        # Obtener la ruta del archivo actual y agregar el subdirectorio/nombre de archivo
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        fname = os.path.join(base_path, fname)
+
+        # Asegurarse de que el directorio exista
+        directory = os.path.dirname(fname)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         data = {
             "ksize": self.ksize,
             "alpha": self.alpha,
             "id": self.id,
             "storage": self.storage,
             "neighbors": self.bootstrappable_k_closest(),
-            "router": self.router,
         }
         with open(fname, "wb") as f:
-            pickle.dump(data, f)
-
-    async def bootstrap(self, nodes: List[NodeData]):
-        """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
-        log.debug(f"Attempting to bootstrap node with {len(nodes)} initial contacts")
-        tasks = []
-        for node in nodes:
-            await self.router.add(node)
-            tasks.append(self.call_ping(node))
-        await asyncio.gather(*tasks)  # Todo MANEJAR LOS PING FALSOS
-        closest = await self.lookup(self.id)
-        for contact in closest:
-            await self.router.add(contact)
-        await self.router.poblate()
-
-    def bootstrappable_k_closest(self):
-        neighbors = self.router.k_closest_to(self.node_data.id)
-        return [tuple(n)[-2:] for n in neighbors]
-
-    async def set(self, key, value):
-        """Almacena un valor en la red"""
-        log.info(f"Setting '{key}' = '{value}' on network")
-        dkey = digest_to_int(key, num_bits=4)
-        closest = await self.lookup(dkey)
-        tasks = [self.call_store(contact, dkey, value) for contact in closest]
-        await asyncio.gather(*tasks)
-        return True
-
-    async def get(self, key):
-        """Busca un valor en la red"""
-        log.info(f"Looking up key {key}")
-        dkey = digest_to_int(key, num_bits=4)
-        closest = await self.lookup()
-        tasks = [self.call_find_value(contact, dkey) for contact in closest]
-        results = await asyncio.gather(*tasks)
-        dict_results = {}
-        for result, is_value in results:
-            if is_value:
-                dict_results[result] = dict_results.get(result, 0) + 1
-        dict_results = list(dict_results.items())
-        return max(dict_results, key=lambda tpl: tpl[1])[0]
+            try:
+                pickle.dump(data, f)
+            except Exception as e:
+                log.error(f"Error saving component: {e}")
 
     @classmethod
-    async def load_state(cls, fname, port, interface="0.0.0.0"):
+    def load_state(cls, fname, port, interface="0.0.0.0"):
         """Carga el estado del nodo desde un archivo"""
         log.info(f"Loading state from {fname}")
         with open(fname, "rb") as f:
@@ -312,10 +367,9 @@ class Node:
             ksize=data["ksize"],
             alpha=data["alpha"],
         )
-        node.router = data["router"]
-        await node.listen(port, interface)
+        node.listen()
         if data["neighbors"]:
-            await node.bootstrap(data["neighbors"])
+            node.bootstrap(data["neighbors"])
         return node
 
 

@@ -3,37 +3,49 @@ from sortedcontainers import SortedList
 from src.kademlia_network.node_data import NodeData
 from typing import List
 import random
-import asyncio
-
-n_of_bits = 4
+from threading import Thread
+from src.utils.utils import N_OF_BITS
 
 
 class Routing_Table:
     def __init__(self, owner_node, bucket_max_size: int):
         self.owner_node = owner_node
-        self.buckets = [KBucket(owner_node, bucket_max_size) for _ in range(n_of_bits)]
+        self.buckets = [KBucket(owner_node, bucket_max_size) for _ in range(N_OF_BITS)]
         self.bucket_max_size = bucket_max_size
 
-    async def add(self, node: NodeData) -> bool:
-        return await self.bucket_of(node.id).add(node)
+    def add(self, node: NodeData) -> bool:
+        return self.bucket_of(node.id).add(node)
 
-    async def poblate(self):
-        id = 1
-        while len(self.buckets[id].contacts):
+    def poblate(self):
+        id = 0
+        while (id < N_OF_BITS) and (len(self.buckets[id].contacts) == 0):
             id += 1
-        tasks = []
+        id += 1
+        results = []
+
+        def lookup_and_save(id):
+            results.append(self.owner_node.lookup(id))
+
+        threads = []
         while id < len(self.buckets):
             random_id = (
                 random.randint((1 << id), (1 << (id + 1)) - 1) ^ self.owner_node.id
             )
-            tasks.append(self.owner_node.lookup(random_id))
+            thread = Thread(target=lookup_and_save, args=(random_id,))
+            threads.append(thread)
+            thread.start()
             id += 1
-        results = await asyncio.gather(*tasks)
-        tasks = []
+        for thread in threads:
+            thread.join()
+        threads = []
         for result in results:
             for contact in result:
-                tasks.append(self.add(contact))
-        await asyncio.gather(*tasks)
+                if contact.id != self.owner_node.id:
+                    thread = Thread(target=self.add, args=(contact,))
+                    threads.append(thread)
+                    thread.start()
+        for thread in threads:
+            thread.join()
 
     def remove(self, id: int) -> None:
         self.bucket_of(id).remove(id)
@@ -41,8 +53,7 @@ class Routing_Table:
     def k_closest_to(self, id: int) -> List[NodeData]:
         distance = id ^ self.owner_node.id
         closest = []
-        for i in range(n_of_bits - 1, -1, -1):
-            value = distance & (1 << i)
+        for i in range(N_OF_BITS - 1, -1, -1):
             if distance & (1 << i):
                 closest.extend(
                     [
@@ -53,7 +64,7 @@ class Routing_Table:
                 if len(closest) >= self.bucket_max_size:
                     break
         if len(closest) < self.bucket_max_size:
-            for i in range(0, n_of_bits):
+            for i in range(0, N_OF_BITS):
                 if not distance & (1 << i):
                     closest.extend(
                         [
@@ -69,6 +80,12 @@ class Routing_Table:
 
     def __contains__(self, id: int) -> bool:
         return id in self.bucket_of(id)
+
+    def get_contacts(self) -> List[NodeData]:
+        contacts = []
+        for k_bucket in self.buckets:
+            contacts.extend(k_bucket.get_contacts())
+        return contacts
 
     def __str__(self) -> str:
         result = []

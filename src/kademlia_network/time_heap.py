@@ -1,9 +1,14 @@
 from collections import deque
 from typing import Tuple
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Time_Heap:
-    def __init__(self):
+    def __init__(
+        self,
+    ):
         self.heap = deque()
         self.times_in_heap = {}
 
@@ -15,17 +20,10 @@ class Time_Heap:
         """Devuelve el id del nodo que fue visto por ultima vez hace mas tiempo"""
         id = self.heap.popleft()
         while self.times_in_heap[id] != 1:
-            self.times_in_heap[id] = min(self.times_in_heap[id] - 1, 0)
+            self.times_in_heap[id] = max(self.times_in_heap[id] - 1, 0)
             id = self.heap.popleft()
         self.remove(id)
         return id
-
-    def split(self, mid: int) -> Tuple["Time_Heap", "Time_Heap"]:
-        left = Time_Heap()
-        right = Time_Heap()
-        for id in self.heap:
-            (left if (id <= mid) else right).add_vision(id)
-        return (left, right)
 
     def remove(self, id):
         self.times_in_heap[id] = 0

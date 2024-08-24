@@ -2,6 +2,8 @@ import hashlib
 import operator
 import asyncio
 
+N_OF_BITS = 4
+
 
 async def gather_dict(dic):
     # Recopila los resultados de un diccionario de corutinas
