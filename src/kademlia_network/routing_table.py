@@ -4,23 +4,23 @@ from src.kademlia_network.node_data import NodeData
 from typing import List
 import random
 import asyncio
-
-n_of_bits = 4
+from src.utils.utils import N_OF_BITS
 
 
 class Routing_Table:
     def __init__(self, owner_node, bucket_max_size: int):
         self.owner_node = owner_node
-        self.buckets = [KBucket(owner_node, bucket_max_size) for _ in range(n_of_bits)]
+        self.buckets = [KBucket(owner_node, bucket_max_size) for _ in range(N_OF_BITS)]
         self.bucket_max_size = bucket_max_size
 
     async def add(self, node: NodeData) -> bool:
         return await self.bucket_of(node.id).add(node)
 
     async def poblate(self):
-        id = 1
-        while len(self.buckets[id].contacts):
+        id = 0
+        while (id < N_OF_BITS) and (len(self.buckets[id].contacts) == 0):
             id += 1
+        id += 1
         tasks = []
         while id < len(self.buckets):
             random_id = (
@@ -32,8 +32,12 @@ class Routing_Table:
         tasks = []
         for result in results:
             for contact in result:
-                tasks.append(self.add(contact))
-        await asyncio.gather(*tasks)
+                if contact.id != self.owner_node.id:
+                    lock = asyncio.Lock()
+                    async with lock:
+                        await self.add(contact)
+
+        # await asyncio.gather(*tasks)
 
     def remove(self, id: int) -> None:
         self.bucket_of(id).remove(id)
@@ -41,7 +45,7 @@ class Routing_Table:
     def k_closest_to(self, id: int) -> List[NodeData]:
         distance = id ^ self.owner_node.id
         closest = []
-        for i in range(n_of_bits - 1, -1, -1):
+        for i in range(N_OF_BITS - 1, -1, -1):
             value = distance & (1 << i)
             if distance & (1 << i):
                 closest.extend(
@@ -53,7 +57,7 @@ class Routing_Table:
                 if len(closest) >= self.bucket_max_size:
                     break
         if len(closest) < self.bucket_max_size:
-            for i in range(0, n_of_bits):
+            for i in range(0, N_OF_BITS):
                 if not distance & (1 << i):
                     closest.extend(
                         [

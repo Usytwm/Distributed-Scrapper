@@ -1,5 +1,6 @@
 import asyncio
 import pickle
+import random
 import threading
 import aiohttp
 from flask import Flask, jsonify, request
@@ -14,7 +15,7 @@ from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from src.utils.utils import digest, gather_dict, digest_to_int
+from src.utils.utils import N_OF_BITS, digest, gather_dict, digest_to_int
 from sortedcontainers import SortedList
 import logging
 from typing import List
@@ -25,7 +26,7 @@ log = logging.getLogger(__name__)
 class Node:
     def __init__(
         self,
-        node_id,
+        node_id=None,
         storage: IStorage = None,
         ip=None,
         port=None,
@@ -34,7 +35,11 @@ class Node:
     ):
         self.storage = storage or Storage()
         self.alpha = alpha
-        self.id = node_id
+        self.id = (
+            node_id
+            if not (node_id is None)
+            else random.randint(0, (1 << N_OF_BITS) - 1)
+        )
         self.host = ip
         self.port = port
         self.ksize = ksize
@@ -181,7 +186,7 @@ class Node:
 
     async def welcome_if_new(self, node: NodeData):
         """Añade un nodo a la tabla de enrutamiento si es nuevo"""
-        if node.id in self.router:
+        if node.id in self.router or node.id == self.id:
             return
 
         log.info("never seen %s before, adding to router", node)
@@ -199,6 +204,7 @@ class Node:
 
     async def lookup(self, id):
         """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
+
         log.info(f"Initiating lookup for key {id}")
         node = NodeData(id=id)
 
@@ -266,13 +272,10 @@ class Node:
             tasks.append(self.call_ping(node))
         await asyncio.gather(*tasks)  # Todo MANEJAR LOS PING FALSOS
         closest = await self.lookup(self.id)
-        for contact in closest:
-            await self.router.add(contact)
         await self.router.poblate()
 
     def bootstrappable_k_closest(self):
-        neighbors = self.router.k_closest_to(self.node_data.id)
-        return [tuple(n)[-2:] for n in neighbors]
+        return self.router.k_closest_to(self.node_data.id)
 
     async def set(self, key, value):
         """Almacena un valor en la red"""
