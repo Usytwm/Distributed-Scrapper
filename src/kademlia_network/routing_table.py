@@ -31,7 +31,7 @@ class Routing_Table:
             random_id = (
                 random.randint((1 << id), (1 << (id + 1)) - 1) ^ self.owner_node.id
             )
-            thread = Thread(target=lookup_and_save, args=(random_id))
+            thread = Thread(target=lookup_and_save, args=(random_id,))
             threads.append(thread)
             thread.start()
             id += 1
@@ -41,7 +41,7 @@ class Routing_Table:
         for result in results:
             for contact in result:
                 if contact.id != self.owner_node.id:
-                    thread = Thread(target=self.add, args=(contact))
+                    thread = Thread(target=self.add, args=(contact,))
                     threads.append(thread)
                     thread.start()
         for thread in threads:

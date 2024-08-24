@@ -456,6 +456,7 @@ def test_bootstrapping():
     for thread in threads:
         thread.join()
 
+    # Todo Hasta aki funciono todo bien me voy a acostra que ando roto
     # Verificar que todos los nodos tienen al menos un vecino
     for node in nodes:
         closest_nodes = node.router.k_closest_to(node.id)
