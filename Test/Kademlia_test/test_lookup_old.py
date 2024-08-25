@@ -20,7 +20,7 @@ from src.kademlia_network.kademlia_node import KademliaNode, KademliaNodeData, d
 
 import asyncio
 from src.kademlia_network.kademlia_node import KademliaNode
-from src.kademlia_network.node_data import KademliaNodeData
+from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
 import threading
 import random
