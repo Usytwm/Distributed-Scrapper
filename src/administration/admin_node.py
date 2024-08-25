@@ -1,15 +1,16 @@
-import os
-import signal
 import logging
+import requests
 from flask import Flask, request, jsonify
 from threading import Thread
+from kademlia_network.kademlia_node import KademliaNode
 
 log = logging.getLogger(__name__)
 
-class Scrapper_Node:
+class Admin_Node:
     def __init__(self, host, port):
         self.host = host
         self.port = port
+        self.node = KademliaNode(ip= self.host, port= )
         self.app = Flask(__name__)
         self.configure_endpoints()
     

@@ -6,7 +6,7 @@ from Interfaces.NodeData import NodeData
 
 class StorageNode:
     def __init__(self, host, port):
-        self.node_data = NodeData(ip= host, port= port)
+        self.node_data = NodeData(ip= host, port= port, type = 'storage')
         self.node = KademliaNode(ip= host, port= port)
         self.app = self.node.app
         self.extend_endpoint()
