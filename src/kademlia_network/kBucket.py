@@ -1,6 +1,6 @@
 import logging
-from threading import Thread, Lock
-from typing import List, Dict, Tuple
+from threading import Lock
+from typing import Dict
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.time_heap import Time_Heap
 

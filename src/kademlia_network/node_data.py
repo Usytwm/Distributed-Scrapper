@@ -1,12 +1,6 @@
-from collections import namedtuple
-from typing import NamedTuple
 import json
 
 
-# class NodeData(NamedTuple):
-#     id: int
-#     ip: str = ""
-#     port: int = 0
 class NodeData:
     def __init__(self, id: int, ip: str = "", port: int = 0):
         self.id = id

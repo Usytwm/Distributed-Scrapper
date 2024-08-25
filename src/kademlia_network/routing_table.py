@@ -1,5 +1,4 @@
 from src.kademlia_network.kBucket import KBucket
-from sortedcontainers import SortedList
 from src.kademlia_network.node_data import NodeData
 from typing import List
 import random

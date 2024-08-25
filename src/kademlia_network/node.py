@@ -1,14 +1,14 @@
-import asyncio
 import os
 import pickle
 import random
 import signal
 from threading import Thread
-import aiohttp
 from flask import Flask, jsonify, request
 import requests
 import sys
 from pathlib import Path
+import logging
+from typing import List
 
 path_to_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(path_to_root))
@@ -17,11 +17,9 @@ from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.node_data import NodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from src.utils.utils import N_OF_BITS, digest, gather_dict, digest_to_int
+from src.utils.utils import N_OF_BITS, digest_to_int
 from sortedcontainers import SortedList
-import logging
-import requests
-from typing import List
+
 
 log = logging.getLogger(__name__)
 
