@@ -58,3 +58,6 @@ class Storage(IStorage):
         ikeys = self.data.keys()
         ivalues = map(operator.itemgetter(1), self.data.values())
         return zip(ikeys, ivalues)
+
+    def clear(self):
+        self.data.clear()

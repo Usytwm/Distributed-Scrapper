@@ -456,7 +456,6 @@ def test_bootstrapping():
     for thread in threads:
         thread.join()
 
-    # Todo Hasta aki funciono todo bien me voy a acostra que ando roto
     #  Verificar que todos los nodos tienen al menos un vecino
     for node in nodes:
         closest_nodes = node.router.k_closest_to(node.id)
@@ -512,6 +511,7 @@ def test_bootstrapping():
         assert (
             retrieved_value == value
         ), f"Fallo al recuperar el valor para la clave {key}"
+        # * Aki falla pero es por que ocurren colisiones debido  una baja canFtidad de bits
 
     print("Todos los tests pasaron correctamente.")
 
@@ -525,4 +525,4 @@ def test_bootstrapping():
 # * test_bootstrap()
 # * test_set()
 # * test_get()
-# TODO test_bootstrapping()
+test_bootstrapping()
