@@ -50,8 +50,7 @@ class Scrapper_Node:
         def scrap():
             data = request.get_json(force=True)
             url = data.get("url")
-            response = self.scrap(url)
-            return jsonify(response), 200
+            return self.scrap(url)
 
     def scrap(self, url: str, format="html"):
         try:
@@ -78,8 +77,12 @@ class Scrapper_Node:
                 full_link = urljoin(url, link["href"])
                 links.append(full_link)
 
-            return {"content": structured_content, "links": links}
+            return jsonify({"content": structured_content, "links": links}), 200
 
         except requests.exceptions.RequestException as e:
             log.error(f"Error al solicitar la URL: {e}")
-            return {"error": str(e)}, 500
+            return jsonify({"error": str(e)}), 500
+
+        except Exception as e:
+            log.error(f"Unexpected error: {e}")
+            return jsonify({"error": "Internal server error"}), 500
