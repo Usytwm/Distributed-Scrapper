@@ -1,3 +1,4 @@
+import requests
 from flask import request, jsonify
 from kademlia_network.kademlia_node import KademliaNode
 from typing import List
@@ -5,11 +6,28 @@ from Interfaces.NodeData import NodeData
 
 class StorageNode:
     def __init__(self, host, port):
-        self.host = host
-        self.port = port
+        self.node_data = NodeData(ip= host, port= port)
         self.node = KademliaNode(ip= host, port= port)
         self.app = self.node.app
         self.extend_endpoint()
+    
+    def listen(self):
+        self.node.listen()
+    
+    def stop(self):
+        self.node.stop()
+    
+    def register(self, entry_points : List[NodeData]):
+        for entry_point in entry_points:
+            node_address = str(entry_point.ip) + ':' + str(entry_point.port)
+            url = f"http://{node_address}/register"
+            data = self.node_data.to_json()
+            try:
+                response = requests.post(url, json= data)
+                response.raise_for_status()
+                break
+            except:
+                continue
     
     def extend_endpoint(self):
         @self.app.route("/global/ping", methods=["GET"])
