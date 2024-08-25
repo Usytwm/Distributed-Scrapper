@@ -35,7 +35,7 @@ def test_call_ping():
     node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node3 = Node(node_id=2, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
     result = node2.call_ping(node1.node_data)
@@ -419,7 +419,7 @@ def test_get():
 
     # Caso de prueba 5: Recuperar un valor cuando un nodo falla
     node2.listen = lambda: None  # Simular un fallo en node2
-    retrieved_value = node3.get(key)  #! Se ejecuta indefinidamente haciendo llamadas
+    retrieved_value = node3.get(key)
     assert (
         retrieved_value == value
     ), f"El valor recuperado no coincide cuando un nodo falla: {retrieved_value} != {value}"
@@ -524,5 +524,5 @@ def test_bootstrapping():
 # * test_lookup()
 # * test_bootstrap()
 # * test_set()
-# ! test_get()
+# * test_get()
 # TODO test_bootstrapping()

@@ -72,6 +72,7 @@ class Routing_Table:
                             for contact in self.buckets[i].get_contacts()
                         ]
                     )
+        closest.append((self.owner_node.id ^ id, self.owner_node.node_data))
         closest.sort()
         return [contact for _, contact in closest[: self.bucket_max_size]]
 
