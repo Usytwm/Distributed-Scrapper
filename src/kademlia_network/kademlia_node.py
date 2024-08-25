@@ -14,7 +14,7 @@ path_to_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(path_to_root))
 
 from src.Interfaces.IStorage import IStorage
-from src.kademlia_network.node_data import KademliaNodeData
+from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
 from src.utils.utils import N_OF_BITS, digest_to_int
