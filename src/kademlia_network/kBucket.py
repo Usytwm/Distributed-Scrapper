@@ -1,7 +1,7 @@
 import logging
 from threading import Lock
 from typing import Dict
-from src.kademlia_network.node_data import KademliaNodeData
+from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.kademlia_network.time_heap import Time_Heap
 
 log = logging.getLogger(__name__)

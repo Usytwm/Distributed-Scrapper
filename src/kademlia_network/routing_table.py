@@ -1,5 +1,5 @@
 from src.kademlia_network.kBucket import KBucket
-from src.kademlia_network.node_data import KademliaNodeData
+from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from typing import List
 import random
 from threading import Thread
