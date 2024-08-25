@@ -1,4 +1,6 @@
 import logging
+import os
+import signal
 import requests
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -14,7 +16,7 @@ class Scrapper_Node:
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.node_data = NodeData(ip= self.host, port = self.port, type= 'scrapper')
+        self.node_data = NodeData(ip=self.host, port=self.port, type="scrapper")
         self.app = Flask(__name__)
         self.configure_endpoints()
 
@@ -26,15 +28,18 @@ class Scrapper_Node:
         thread.start()
 
     def stop(self):
-        pass
+        """Detiene el servidor"""
+        log.info("Deteniendo el servidor...")
+        # Enviar señal para detener el servidor Flask
+        os.kill(os.getpid(), signal.SIGINT)
 
-    def register(self, entry_points : List[NodeData]):
+    def register(self, entry_points: List[NodeData]):
         for entry_point in entry_points:
-            node_address = str(entry_point.ip) + ':' + str(entry_point.port)
+            node_address = str(entry_point.ip) + ":" + str(entry_point.port)
             url = f"http://{node_address}/register"
             data = self.node_data.to_json()
             try:
-                response = requests.post(url, json= data)
+                response = requests.post(url, json=data)
                 response.raise_for_status()
                 break
             except:

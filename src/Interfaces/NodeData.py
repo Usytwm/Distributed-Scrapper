@@ -1,13 +1,14 @@
 import json
 
+
 class NodeData:
-    def __init__(self, ip: str = "", port: int = 0, type = 'admin'):
+    def __init__(self, ip: str = "", port: int = 0, type="admin"):
         self.ip = ip
         self.port = port
         self.type = type
 
     def to_json(self):
-        return json.dumps({"ip": self.ip, "port": self.port, "type" : self.type})
+        return json.dumps({"ip": self.ip, "port": self.port, "type": self.type})
 
     @classmethod
     def from_json(cls, json_str):
