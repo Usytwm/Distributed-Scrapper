@@ -1,4 +1,6 @@
 import logging
+import os
+import signal
 import requests
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -26,7 +28,10 @@ class Scrapper_Node:
         thread.start()
 
     def stop(self):
-        pass
+        """Detiene el servidor"""
+        log.info("Deteniendo el servidor...")
+        # Enviar señal para detener el servidor Flask
+        os.kill(os.getpid(), signal.SIGINT)
 
     def register(self, entry_points: List[NodeData]):
         for entry_point in entry_points:
