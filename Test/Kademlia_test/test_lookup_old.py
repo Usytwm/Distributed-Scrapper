@@ -15,12 +15,12 @@ path_to_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(path_to_root))
 
 logging.basicConfig(level=logging.DEBUG)
-from src.kademlia_network.node import Node, NodeData, distance_to
+from src.kademlia_network.kademlia_node import KademliaNode, KademliaNodeData, distance_to
 
 
 import asyncio
-from src.kademlia_network.node import Node
-from src.kademlia_network.node_data import NodeData
+from src.kademlia_network.kademlia_node import KademliaNode
+from src.kademlia_network.node_data import KademliaNodeData
 
 import threading
 import random
@@ -29,13 +29,13 @@ log = logging.getLogger(__name__)
 
 
 def test_call_ping():
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=2, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(node_id=2, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
     result = node2.call_ping(node1.node_data)
@@ -52,10 +52,10 @@ def test_call_ping():
 
 
 def test_call_store():
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
     key = "test_key"
@@ -77,10 +77,10 @@ def test_call_store():
 
 
 def test_call_find_value():
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
     # Almacenar un valor en node2
@@ -102,13 +102,13 @@ def test_call_find_value():
 
 
 def test_call_find_node():
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
     # Agregar los nodos directamente a la tabla de enrutamiento de node1
@@ -137,19 +137,19 @@ def test_call_find_node():
 
 def test_lookup():
     # Crear nodos de la red
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
-    node4 = Node(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
+    node4 = KademliaNode(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
     node4.listen()
 
-    node5 = Node(node_id=5, ip="127.0.0.1", port=8005, ksize=2)
+    node5 = KademliaNode(node_id=5, ip="127.0.0.1", port=8005, ksize=2)
     node5.listen()
 
     # Agregar nodos a la tabla de enrutamiento de node1
@@ -202,7 +202,7 @@ def test_lookup():
     ], f"El nodo más cercano al ID {high_node_id} no fue correcto"
 
     # Caso de prueba 5: Buscar un nodo en un espacio de IDs densamente poblado
-    node7 = Node(node_id=7, ip="127.0.0.1", port=8006, ksize=2)
+    node7 = KademliaNode(node_id=7, ip="127.0.0.1", port=8006, ksize=2)
     node7.listen()
     node1.router.add(node7.node_data)
 
@@ -219,19 +219,19 @@ def test_lookup():
 
 def test_bootstrap():
     # Crear nodos de la red
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
-    node4 = Node(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
+    node4 = KademliaNode(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
     node4.listen()
 
-    node5 = Node(node_id=5, ip="127.0.0.1", port=8005, ksize=2)
+    node5 = KademliaNode(node_id=5, ip="127.0.0.1", port=8005, ksize=2)
     node5.listen()
 
     # Agregar nodos iniciales a node1 a través del bootstrap
@@ -275,7 +275,7 @@ def test_bootstrap():
     ), "El proceso de poblate no llenó correctamente la tabla de enrutamiento"
 
     # Caso de prueba 5: Verificar que el nodo sigue funcionando después de múltiples bootstrap calls
-    node6 = Node(node_id=6, ip="127.0.0.1", port=8006, ksize=2)
+    node6 = KademliaNode(node_id=6, ip="127.0.0.1", port=8006, ksize=2)
     node6.listen()
     node1.bootstrap([node6.node_data])
 
@@ -289,16 +289,16 @@ def test_bootstrap():
 
 def test_set():
     # Configuración de la red
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
-    node4 = Node(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
+    node4 = KademliaNode(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
     node4.listen()
 
     node1.bootstrap([node2.node_data, node3.node_data, node4.node_data])
@@ -360,16 +360,16 @@ def test_set():
 
 def test_get():
     # Configuración de la red
-    node1 = Node(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
     node1.listen()
 
-    node2 = Node(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
     node2.listen()
 
-    node3 = Node(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
     node3.listen()
 
-    node4 = Node(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
+    node4 = KademliaNode(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
     node4.listen()
 
     node1.bootstrap([node2.node_data, node3.node_data, node4.node_data])
@@ -435,13 +435,13 @@ def test_bootstrapping():
 
     # Creación de nodos
     for i in range(num_nodes):
-        node = Node(node_id=i, ip="127.0.0.1", port=60000 + i, ksize=ksize)
+        node = KademliaNode(node_id=i, ip="127.0.0.1", port=60000 + i, ksize=ksize)
         node.listen()
         nodes.append(node)
 
     # Bootstrap de la red
     bootstrap_nodes = [
-        NodeData(ip=node.host, port=node.port, id=node.id) for node in nodes
+        KademliaNodeData(ip=node.host, port=node.port, id=node.id) for node in nodes
     ]
 
     def bootstrap_node(node, bootstrap_nodes):

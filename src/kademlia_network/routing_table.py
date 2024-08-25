@@ -1,5 +1,5 @@
 from src.kademlia_network.kBucket import KBucket
-from src.kademlia_network.node_data import NodeData
+from src.kademlia_network.node_data import KademliaNodeData
 from typing import List
 import random
 from threading import Thread
@@ -12,7 +12,7 @@ class Routing_Table:
         self.buckets = [KBucket(owner_node, bucket_max_size) for _ in range(N_OF_BITS)]
         self.bucket_max_size = bucket_max_size
 
-    def add(self, node: NodeData) -> bool:
+    def add(self, node: KademliaNodeData) -> bool:
         return self.bucket_of(node.id).add(node)
 
     def poblate(self):
@@ -49,7 +49,7 @@ class Routing_Table:
     def remove(self, id: int) -> None:
         self.bucket_of(id).remove(id)
 
-    def k_closest_to(self, id: int) -> List[NodeData]:
+    def k_closest_to(self, id: int) -> List[KademliaNodeData]:
         distance = id ^ self.owner_node.id
         closest = []
         for i in range(N_OF_BITS - 1, -1, -1):
@@ -81,7 +81,7 @@ class Routing_Table:
     def __contains__(self, id: int) -> bool:
         return id in self.bucket_of(id)
 
-    def get_contacts(self) -> List[NodeData]:
+    def get_contacts(self) -> List[KademliaNodeData]:
         contacts = []
         for k_bucket in self.buckets:
             contacts.extend(k_bucket.get_contacts())

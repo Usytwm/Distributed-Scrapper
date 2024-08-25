@@ -1,7 +1,7 @@
 import json
 
 
-class NodeData:
+class KademliaNodeData:
     def __init__(self, id: int, ip: str = "", port: int = 0):
         self.id = id
         self.ip = ip
@@ -18,5 +18,5 @@ class NodeData:
     def __str__(self) -> str:
         return f"ID:{self.id} -> ADRESS:{self.ip}:{self.port}"
 
-    def __eq__(self, value: "NodeData") -> bool:
+    def __eq__(self, value: "KademliaNodeData") -> bool:
         return self.id == value.id and self.ip == value.ip and self.port == value.port

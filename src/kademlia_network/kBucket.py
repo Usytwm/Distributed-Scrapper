@@ -1,7 +1,7 @@
 import logging
 from threading import Lock
 from typing import Dict
-from src.kademlia_network.node_data import NodeData
+from src.kademlia_network.node_data import KademliaNodeData
 from src.kademlia_network.time_heap import Time_Heap
 
 log = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class KBucket:
         self.time_heap = Time_Heap()
         self.lock = Lock()
 
-    def add(self, node: NodeData) -> bool:
+    def add(self, node: KademliaNodeData) -> bool:
         """Retorna True si el nodo fue anhadido y False si fue descartado"""
         if node.id in self.contacts:
             self.time_heap.add_vision(node.id)

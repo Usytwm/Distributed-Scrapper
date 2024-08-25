@@ -14,7 +14,7 @@ path_to_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(path_to_root))
 
 from src.Interfaces.IStorage import IStorage
-from src.kademlia_network.node_data import NodeData
+from src.kademlia_network.node_data import KademliaNodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
 from src.utils.utils import N_OF_BITS, digest_to_int
@@ -24,7 +24,7 @@ from sortedcontainers import SortedList
 log = logging.getLogger(__name__)
 
 
-class Node:
+class KademliaNode:
     def __init__(
         self,
         node_id=None,
@@ -45,7 +45,7 @@ class Node:
         self.port = port
         self.ksize = ksize
         self.router = Routing_Table(self, ksize)
-        self.node_data = NodeData(ip=self.host, port=self.port, id=self.id)
+        self.node_data = KademliaNodeData(ip=self.host, port=self.port, id=self.id)
         self.app = Flask(__name__)
         self.configure_endpoints()
 
@@ -67,36 +67,36 @@ class Node:
         @self.app.route("/ping", methods=["POST"])
         def ping():
             data = request.get_json(force=True)
-            node = NodeData.from_json(data.get("sender_node_data"))
+            node = KademliaNodeData.from_json(data.get("sender_node_data"))
             response = self.ping(node)
             return jsonify(response), 200
 
         @self.app.route("/store", methods=["POST"])
         def store():
             data = request.get_json(force=True)
-            node = NodeData.from_json(data.get("sender_node_data"))
+            node = KademliaNodeData.from_json(data.get("sender_node_data"))
             response = self.store(node, data.get("key"), data.get("value"))
             return jsonify(response), 200
 
         @self.app.route("/find_value", methods=["POST"])
         def find_value():
             data = request.get_json(force=True)
-            node = NodeData.from_json(data.get("sender_node_data"))
+            node = KademliaNodeData.from_json(data.get("sender_node_data"))
             response = self.find_value(node, data.get("key"))
             return jsonify(response), 200
 
         @self.app.route("/find_node", methods=["POST"])
         def find_node():
             data = request.get_json(force=True)
-            node = NodeData.from_json(data.get("sender_node_data"))
+            node = KademliaNodeData.from_json(data.get("sender_node_data"))
             response = self.find_node(node, data.get("key"))
             return jsonify(response), 200
 
-    def ping(self, node: NodeData):
+    def ping(self, node: KademliaNodeData):
         self.welcome_if_new(node)
         return {"status": "OK"}
 
-    def store(self, node: NodeData, key, value):
+    def store(self, node: KademliaNodeData, key, value):
         self.welcome_if_new(node)
         log.debug(
             "got a store request from node %s, storing '%s'='%s'", node.id, key, value
@@ -104,7 +104,7 @@ class Node:
         self.storage[key] = value
         return {"status": "OK"}
 
-    def find_value(self, node: NodeData, key):
+    def find_value(self, node: KademliaNodeData, key):
         value = self.storage.get(key)
         if value is None:
             node = self.find_node(node, key)
@@ -112,13 +112,13 @@ class Node:
         self.welcome_if_new(node)
         return {"status": "OK", "value": value}
 
-    def find_node(self, node: NodeData, key):
+    def find_node(self, node: KademliaNodeData, key):
         log.info("finding neighbors of %i in local table", key)
         self.welcome_if_new(node)
         closest_nodes = [node.to_json() for node in self.router.k_closest_to(key)]
         return {"status": "OK", "nodes": closest_nodes}
 
-    def call_ping(self, node_to_ask: NodeData):
+    def call_ping(self, node_to_ask: KademliaNodeData):
         """Llama a PING en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
         response = self.call_rpc(
@@ -130,7 +130,7 @@ class Node:
 
         return response.get("status") == "OK"
 
-    def call_store(self, node_to_ask: NodeData, key, value):
+    def call_store(self, node_to_ask: KademliaNodeData, key, value):
         """Llama a STORE en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
         response = self.call_rpc(
@@ -144,7 +144,7 @@ class Node:
 
         return response.get("status") == "OK"
 
-    def call_find_value(self, node_to_ask: NodeData, key):
+    def call_find_value(self, node_to_ask: KademliaNodeData, key):
         """Llama a FIND_VALUE en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
         response = self.call_rpc(
@@ -161,7 +161,7 @@ class Node:
             else (response.get("nodes"), False)
         )
 
-    def call_find_node(self, node_to_ask: NodeData, key):
+    def call_find_node(self, node_to_ask: KademliaNodeData, key):
         """Llama a FIND_NODE en otro nodo"""
         address = f"{node_to_ask.ip}:{node_to_ask.port}"
         response = self.call_rpc(
@@ -172,7 +172,7 @@ class Node:
         if response is None:
             print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
-        return [NodeData.from_json(node) for node in response.get("nodes")]
+        return [KademliaNodeData.from_json(node) for node in response.get("nodes")]
 
     def call_rpc(self, node_address, endpoint, data):
         url = f"http://{node_address}/{endpoint}"
@@ -190,7 +190,7 @@ class Node:
             print(f"RequestException occurred when calling {url}: {e}")
             return None
 
-    def welcome_if_new(self, node: NodeData):
+    def welcome_if_new(self, node: KademliaNodeData):
         """Añade un nodo a la tabla de enrutamiento si es nuevo"""
         if node.id in self.router or node.id == self.id:
             return
@@ -212,7 +212,7 @@ class Node:
         """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
 
         log.info(f"Initiating lookup for key {id}")
-        node = NodeData(id=id)
+        node = KademliaNodeData(id=id)
 
         # Inicializar el conjunto de nodos más cercanos a partir de la tabla de enrutamiento
         nearest = SortedList(
@@ -261,7 +261,7 @@ class Node:
 
         return [contact for _, contact in nearest]
 
-    def bootstrap(self, nodes: List[NodeData]):
+    def bootstrap(self, nodes: List[KademliaNodeData]):
         """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
         log.debug(f"Attempting to bootstrap node with {len(nodes)} initial contacts")
         threads = []
