@@ -54,10 +54,13 @@ class KademliaQueueNode(KademliaNode):
             return {"status": "OK", "value": None}
         start_idx, end_idx = response
         chunk = self.get(f"{queue}_chunk_{start_idx}")
+        if chunk == False or len(chunk) == 0:
+            return {"status": "OK", "value": None}
         answer = chunk[0]
         chunk = chunk[1:]
         self.set(f"{queue}_chunk_{start_idx}", chunk)
-        if len(chunk) == 0:
+        value = self.get(f"{queue}_chunk_{start_idx + 1}")
+        if (len(chunk) == 0) and (start_idx < end_idx):
             self.set(f"{queue}_current_chunks", (start_idx + 1, end_idx))
         return {"status": "OK", "value": answer}
 
