@@ -157,7 +157,7 @@ class KademliaNode:
             return False
         return (
             (response.get("value"), True)
-            if response.get("value")
+            if "value" in response
             else (response.get("nodes"), False)
         )
 

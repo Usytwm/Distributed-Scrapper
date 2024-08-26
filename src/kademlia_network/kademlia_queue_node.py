@@ -1,4 +1,4 @@
-from kademlia_node import KademliaNode
+from src.kademlia_network.kademlia_node import KademliaNode
 from src.Interfaces.IStorage import IStorage
 from flask import request, jsonify
 
@@ -19,14 +19,14 @@ class KademliaQueueNode(KademliaNode):
         self.init_new_endpoints()
 
     def init_new_endpoints(self):
-        @self.app.route("/push_as_leader")
+        @self.app.route("/push_as_leader", methods=["POST"])
         def push_as_leader():
             data = request.get_json(force=True)
             queue, value = data.get("queue"), data.get("value")
             response = self.push_as_leader(queue, value)
             return jsonify(response), 200
 
-        @self.app.route("/pop_as_leader")
+        @self.app.route("/pop_as_leader", methods=["POST"])
         def pop_as_leader():
             data = request.get_json(force=True)
             queue = data.get("queue")
@@ -37,8 +37,8 @@ class KademliaQueueNode(KademliaNode):
         response = self.get(f"{queue}_current_chunks")
         if response == False:
             response = (0, 0)
-            self.set(f"{queue}_current_chunks", response)
-            self.set(f"{queue}_chunk_{0}", [])
+            value1 = self.set(f"{queue}_current_chunks", response)
+            value2 = self.set(f"{queue}_chunk_{0}", [])
         start_idx, end_idx = response
         chunk = self.get(f"{queue}_chunk_{end_idx}")
         chunk.append(value)
@@ -79,9 +79,9 @@ class KademliaQueueNode(KademliaNode):
         leader = self.find_leader()
         address = f"{leader.ip}:{leader.port}"
         data = {"queue": queue}
-        response = self.call_rpc(address, "push_as_leader", data)
+        response = self.call_rpc(address, "pop_as_leader", data)
         if response is None:
             print(f"No response from node {address}")
-            return False
+            return None
 
-        return response.get("status") == "OK"
+        return response.get("value") if response.get("status") == "OK" else None
