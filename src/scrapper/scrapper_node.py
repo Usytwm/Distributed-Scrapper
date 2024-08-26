@@ -1,7 +1,9 @@
+import logging
 import os
 import signal
-import logging
 import requests
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
 from flask import Flask, request, jsonify
 from threading import Thread
 from Interfaces.NodeData import NodeData
@@ -26,7 +28,10 @@ class Scrapper_Node:
         thread.start()
 
     def stop(self):
-        pass
+        """Detiene el servidor"""
+        log.info("Deteniendo el servidor...")
+        # Enviar señal para detener el servidor Flask
+        os.kill(os.getpid(), signal.SIGINT)
 
     def register(self, entry_points: List[NodeData]):
         for entry_point in entry_points:
@@ -45,8 +50,40 @@ class Scrapper_Node:
         def scrap():
             data = request.get_json(force=True)
             url = data.get("url")
-            response = self.scrap(url)
-            return jsonify(response), 200
+            return self.scrap(url)
 
-    def scrap(self, url: str):
-        pass
+    def scrap(self, url: str, format="html"):
+        try:
+            # Solicitar la página web
+            response = requests.get(url)
+            response.raise_for_status()  # Verificar que la solicitud fue exitosa
+
+            # Parsear el contenido de la página
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            # Usar match-case para seleccionar el formato de retorno
+            match format:
+                case "text":
+                    structured_content = soup.get_text()
+                case "html":
+                    structured_content = str(soup)
+                case _:
+                    structured_content = str(soup)  # Por defecto, devolver HTML
+
+            # Extraer todos los enlaces de la página
+            links = []
+            for link in soup.find_all("a", href=True):
+                # Asegurar que los enlaces sean completos (absolutos)
+                full_link = urljoin(url, link["href"])
+                links.append(full_link)
+
+            return jsonify({"content": structured_content, "links": links}), 200
+
+        except requests.exceptions.RequestException as e:
+            log.error(f"Error al solicitar la URL: {e}")
+            return jsonify({"error": str(e)}), 500
+
+        except Exception as e:
+            log.error(f"Unexpected error: {e}")
+            return jsonify({"error": "Internal server error"}), 500
+

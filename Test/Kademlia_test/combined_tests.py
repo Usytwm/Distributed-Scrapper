@@ -11,7 +11,7 @@ import threading
 
 
 from src.kademlia_network.kademlia_node import KademliaNode
-from src.kademlia_network.node_data import KademliaNodeData
+from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
 
 logging.basicConfig(level=logging.DEBUG)
