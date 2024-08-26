@@ -37,7 +37,7 @@ class Scrapper_Node:
         for entry_point in entry_points:
             node_address = str(entry_point.ip) + ":" + str(entry_point.port)
             url = f"http://{node_address}/register"
-            data = self.node_data.to_json()
+            data = {"node": self.node_data.to_json()}
             try:
                 response = requests.post(url, json=data)
                 response.raise_for_status()
@@ -86,3 +86,4 @@ class Scrapper_Node:
         except Exception as e:
             log.error(f"Unexpected error: {e}")
             return jsonify({"error": "Internal server error"}), 500
+

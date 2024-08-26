@@ -312,6 +312,11 @@ class KademliaNode:
         for thread in threads:
             thread.join()
 
+        for result, is_value in results:
+            if is_value:
+                return result
+        return False
+        """
         dict_results = {}
         for result, is_value in results:
             if is_value:
@@ -322,6 +327,7 @@ class KademliaNode:
             if len(dict_results) > 0
             else False
         )
+        """
 
     def bootstrappable_k_closest(self):
         return self.router.k_closest_to(self.node_data.id)
