@@ -3,6 +3,7 @@ from pathlib import Path
 import time
 
 from src.kademlia_network.kademlia_queue_node import KademliaQueueNode
+from src.kademlia_network.storage import Storage
 
 path_to_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(path_to_root))
