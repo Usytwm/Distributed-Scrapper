@@ -2,7 +2,7 @@ import hashlib
 import operator
 import asyncio
 
-N_OF_BITS = 4
+N_OF_BITS = 8
 
 
 async def gather_dict(dic):
