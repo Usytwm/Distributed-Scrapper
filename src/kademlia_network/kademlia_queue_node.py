@@ -80,3 +80,6 @@ class KademliaQueueNode(KademliaListNode):
 
     def set_first_idx(self, queue, idx):
         self.set(f"{queue}_first", idx)
+
+    def is_empty(self, queue):
+        return self.get_length(queue) == self.get_first_idx(queue)

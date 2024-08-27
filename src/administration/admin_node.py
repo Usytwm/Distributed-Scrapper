@@ -42,7 +42,7 @@ class Admin_Node(KademliaQueueNode):
         @self.app.route("/leader/register", methods=["POST"])
         def leader_register():
             data = request.get_json(force=True)
-            role, node = data.get("role"), data.get("node")
+            role, node = data.get("role"), KademliaNodeData.from_json(data.get("node"))
             self.leader_register(role, node)
             return jsonify({"status": "OK"}), 200
 
@@ -50,6 +50,15 @@ class Admin_Node(KademliaQueueNode):
         def leader_run():
             self.leader_run()
             return jsonify({"status": "OK"}), 200
+
+        @self.app.route("/leader/stop", methods=["POST"])
+        def leader_stop():
+            self.is_leader = False
+            return jsonify({"status": "OK"}), 200
+
+        @self.app.route("/leader_address", methods=["POST"])
+        def leader_address():
+            return jsonify({"status": "OK", "address": self.find_leader_address()})
 
         @self.app.route("/leader/handle_scrap_result")
         def handle_scrap_result():
@@ -65,19 +74,48 @@ class Admin_Node(KademliaQueueNode):
             data = request.get_json(force=True)
             url = data.get("url")
             scrapper = NodeData.from_json(data.get("scrapper"))
-            follower_scrap(scrapper, url)
+            self.follower_scrap(scrapper, url)
 
     def follower_register(self, role, node: KademliaNodeData):
-        pass
+        address = self.find_leader_address()
+        data = {"role": role, "node": node.to_json()}
+        response = self.call_rpc(address, "/leader/register", data)
+        if response is None:
+            log.info(f"No response from node {address}")
+            return None
+        return response.get("status") == "OK"
 
-    def leader_register(self, role, node):
-        pass
+    def leader_register(self, role, node: KademliaNodeData):
+        self.push(role, node.to_json())
 
     def leader_run(self):
-        pass
+        while self.is_leader:
+            if not self.is_empty("scrapper") and not self.is_empty("urls"):
+                admin = KademliaNodeData.from_json(self.pop("admin"))
+                self.push("admin", admin.to_json())
+                address = f"{admin.ip}:{admin.port}"
+                url = self.pop("urls")
+                scrapper = self.pop("scrapper")
+                data = {"url": url, "scrapper": scrapper}
+                thread = Thread(
+                    target=self.call_rpc, args=(address, "follower/scrap", data)
+                )
+                thread.start()
+                self.push("in_process", (url, admin.to_json()))
+            if not self.is_empty("in_process"):
+                url, scrapper = self.pop("in_process")
+                address = self.select_storage_address()  #! Implementar
+                response = self.call_rpc(address, "get", url)
+                if response.get("value") == None and not self.call_ping(admin):
+                    self.push("urls", url)
+                else:
+                    self.push("in_process", (url, scrapper))
 
     def handle_scrap_results(self, urls, scrapper, state):
         pass
 
     def follower_scrap(self, scrapper, url):
+        pass
+
+    def select_storage_address(self):
         pass
