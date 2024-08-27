@@ -1,7 +1,10 @@
+import logging
 from src.kademlia_network.kademlia_list_node import KademliaListNode
 from src.Interfaces.IStorage import IStorage
 from flask import request, jsonify
 from typing import Tuple
+
+log = logging.getLogger(__name__)
 
 
 class EmptyQueueException(Exception):
@@ -24,12 +27,24 @@ class KademliaQueueNode(KademliaListNode):
         self.configure_queue_endpoints()
 
     def configure_queue_endpoints(self):
-        @self.app.route("/leader/pop")
+        @self.app.route("/leader/init_queue", methods=["POST"])
+        def init_queue_as_leader():
+            data = request.get_json(force=True)
+            queue = data.get("queue")
+            response = self.init_queue_as_leader(queue)
+            return jsonify(response), 200
+
+        @self.app.route("/leader/pop", methods=["POST"])
         def pop_as_leader():
             data = request.get_json(force=True)
             queue = data.get("queue")
+            #!controlar excepvcion
             response = self.pop_as_leader(queue)
             return jsonify(response), 200
+
+    def init_queue_as_leader(self, queue):
+        self.init_list_as_leader(queue)
+        self.set_first_idx(queue, 0)
 
     def pop_as_leader(self, queue):
         first_idx = self.get_first_idx(queue)
@@ -39,23 +54,32 @@ class KademliaQueueNode(KademliaListNode):
         self.set_first_idx(queue, first_idx + 1)
         return {"status": "OK", "value": value}
 
+    def init_queue(self, queue):
+        address = self.find_leader_address()
+        data = {"queue": queue}
+        response = self.call_rpc(address, "/leader/init_queue", data)
+        if response is None:
+            log.info(f"No response from node {address}")
+            return False
+        return response.get("status") == "OK"
+
     def push(self, queue, value):
-        self.append(queue, value)
+        return self.append(queue, value)
 
     def pop(self, queue):
         address = self.find_leader_address()
         data = {"queue": queue}
         response = self.call_rpc(address, "/leader/pop", data)
         if response is None:
-            print(f"No response from node {address}")
-            return False
-        return response.get("status") == "OK"
+            log.info(f"No response from node {address}")
+            return None
+        return response.get("value")
 
     def get_first_idx(self, queue):
-        first_idx = self.get(f"{queue}_first")
-        if first_idx == False:
-            return 0
-        return first_idx
+        return self.get(f"{queue}_first")
 
     def set_first_idx(self, queue, idx):
         self.set(f"{queue}_first", idx)
+
+    def is_empty(self, queue):
+        return self.get_length(queue) == self.get_first_idx(queue)

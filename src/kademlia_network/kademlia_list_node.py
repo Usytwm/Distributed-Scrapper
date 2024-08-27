@@ -1,4 +1,4 @@
-from kademlia_node import KademliaNode
+from src.kademlia_network.kademlia_node import KademliaNode
 from src.Interfaces.IStorage import IStorage
 from flask import request, jsonify
 from typing import Tuple, List
@@ -20,6 +20,13 @@ class KademliaListNode(KademliaNode):
         self.configure_list_endpoints()
 
     def configure_list_endpoints(self):
+        @self.app.route("/leader/init_list", methods=["POST"])
+        def init_list_as_leader():
+            data = request.get_json(force=True)
+            list = data.get("list")
+            response = self.init_list_as_leader(list)
+            return jsonify(response), 200
+
         @self.app.route("/leader/append", methods=["POST"])
         def append_as_leader():
             data = request.get_json(force=True)
@@ -34,6 +41,11 @@ class KademliaListNode(KademliaNode):
             response = self.append_as_leader(list, value)
             return jsonify(response), 200
 
+    def init_list_as_leader(self, list):
+        self.set_length(list, 0)
+        self.set_chunk(list, 0, [])
+        return {"status": "OK"}
+
     def append_as_leader(self, list, value):
         length, chunk_idx, chunk = self.get_tail(list)
         chunk.append(value)
@@ -42,15 +54,25 @@ class KademliaListNode(KademliaNode):
         self.set_length(list, length)
         if (length % self.max_chunk_size) == 0:
             self.set_chunk(list, chunk_idx + 1, [])
+        return {"status": "OK"}
 
     def list_set_as_leader(self, list, idx, value):
         chunk_idx, idx_in_chunk, chunk = self.chunk_for_idx(list, idx)
         chunk[idx_in_chunk] = value
         self.set_chunk(list, chunk_idx, idx_in_chunk)
+        return {"status": "OK"}
 
     def find_leader_address(self) -> str:
         leader = self.lookup(0)[0]
         return f"{leader.ip}:{leader.port}"
+
+    def init_list(self, list):
+        address = self.find_leader_address()
+        response = self.call_rpc(address, "leader/init_list", {"list": list})
+        if response is None:
+            print(f"No response from node {address}")
+            return
+        return response.get("status") == "OK"
 
     def append(self, list, value):
         address = self.find_leader_address()
@@ -78,8 +100,8 @@ class KademliaListNode(KademliaNode):
         """Devuelve la longitud de la cola,
         el indice del ultimo chunk,
         y el ultimo chunk"""
-        length = self.get(f"{list}_length")
-        chunk_idx, _, chunk = self.chunk_for_idx()
+        length = self.get_length(list)
+        chunk_idx, _, chunk = self.chunk_for_idx(list, length)
         if chunk == False:
             chunk = []
         return length, chunk_idx, chunk
@@ -105,7 +127,4 @@ class KademliaListNode(KademliaNode):
         self.set(f"{list}_length", length)
 
     def get_length(self, list):
-        length = self.get(f"{list}_length")
-        if length == False:
-            return 0
-        return length
+        return self.get(f"{list}_length")

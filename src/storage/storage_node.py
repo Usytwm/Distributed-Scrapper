@@ -1,41 +1,13 @@
-import requests
-from flask import request, jsonify
-from kademlia_network.kademlia_node import KademliaNode
-from typing import List
-from Interfaces.NodeData import NodeData
+from flask import jsonify, request
+from src.Interfaces import WorkerNode
 
 
-class StorageNode:
+class StorageNode(WorkerNode):
     def __init__(self, host, port):
-        self.node_data = NodeData(ip=host, port=port, type="storage")
-        self.node = KademliaNode(ip=host, port=port)
-        self.app = self.node.app
-        self.extend_endpoint()
+        super().__init__(host=host, port=port)
+        self.configure_storage_endpoint()
 
-    def listen(self):
-        self.node.listen()
-
-    def stop(self):
-        self.node.stop()
-
-    def register(self, entry_points: List[NodeData]):
-        for entry_point in entry_points:
-            node_address = str(entry_point.ip) + ":" + str(entry_point.port)
-            url = f"http://{node_address}/register"
-            data = {"node": self.node_data.to_json()}
-            try:
-                response = requests.post(url, json=data)
-                response.raise_for_status()
-                break
-            except:
-                continue
-
-    def extend_endpoint(self):
-        @self.app.route("/global/ping", methods=["GET"])
-        def global_ping():
-            response = self.global_ping()
-            return jsonify(response), 200
-
+    def configure_storage_endpoint(self):
         @self.app.route("/set", methods=["POST"])
         def set():
             data = request.get_json(force=True)
@@ -50,16 +22,15 @@ class StorageNode:
             response = self.get(key)
             return jsonify(response), 200
 
-    def global_ping(self):
-        return {"status": "OK"}
 
-    def set(self, key, value):
-        self.node.set(key, value)
-        return {"status": "OK"}
+def set(self, key, value):
+    self.set(key, value)
+    return {"status": "OK"}
 
-    def get(self, key):
-        value = self.node.get(key)
-        if not (value == False):
-            return {"status": "OK", "value": value}
-        else:
-            return {"status": "OK", "value": None}
+
+def get(self, key):
+    value = self.get(key)
+    if not (value == False):
+        return {"status": "OK", "value": value}
+    else:
+        return {"status": "OK", "value": None}
