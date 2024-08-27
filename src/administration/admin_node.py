@@ -27,19 +27,17 @@ class Admin_Node(KademliaQueueNode):
         self.is_leader = False
 
     def configure_admin_endpoints(self):
+        @self.app.route("/global_ping", methods=["POST"])
+        def global_ping():
+            return jsonify({"status": "OK"}), 200
+
         @self.app.route("/follower/register", methods=["POST"])
         def follower_register():
             data = request.get_json(force=True)
             role, node = data.get("role"), data.get("node")
-            match role:
-                case "admin":
-                    node = KademliaNodeData.from_json(node)
-                case "scrapper":
-                    node = NodeData.from_json(node)
-                case "storage":
-                    node = NodeData.from_json(node)
-            self.follower_register(role, node)
-            return jsonify({"status": "OK"}), 200
+            node = KademliaNodeData.from_json(node)
+            response = self.follower_register(role, node)
+            return jsonify(response), 200
 
         @self.app.route("/leader/register", methods=["POST"])
         def leader_register():
@@ -69,17 +67,17 @@ class Admin_Node(KademliaQueueNode):
             scrapper = NodeData.from_json(data.get("scrapper"))
             follower_scrap(scrapper, url)
 
-        def follower_register(self, role, node):
-            pass
+    def follower_register(self, role, node: KademliaNodeData):
+        pass
 
-        def leader_register(self, role, node):
-            pass
+    def leader_register(self, role, node):
+        pass
 
-        def leader_run(self):
-            pass
+    def leader_run(self):
+        pass
 
-        def handle_scrap_results(self, urls, scrapper, state):
-            pass
+    def handle_scrap_results(self, urls, scrapper, state):
+        pass
 
-        def follower_scrap(self, scrapper, url):
-            pass
+    def follower_scrap(self, scrapper, url):
+        pass

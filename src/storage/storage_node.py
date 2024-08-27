@@ -5,18 +5,10 @@ from typing import List
 from Interfaces.NodeData import NodeData
 
 
-class StorageNode:
+class StorageNode(KademliaNode):
     def __init__(self, host, port):
-        self.node_data = NodeData(ip=host, port=port, type="storage")
-        self.node = KademliaNode(ip=host, port=port)
-        self.app = self.node.app
-        self.extend_endpoint()
-
-    def listen(self):
-        self.node.listen()
-
-    def stop(self):
-        self.node.stop()
+        super().__init__(host=host, port=port)
+        self.configure_storage_endpoint()
 
     def register(self, entry_points: List[NodeData]):
         for entry_point in entry_points:
@@ -30,7 +22,7 @@ class StorageNode:
             except:
                 continue
 
-    def extend_endpoint(self):
+    def configure_storage_endpoint(self):
         @self.app.route("/global/ping", methods=["GET"])
         def global_ping():
             response = self.global_ping()
@@ -54,11 +46,11 @@ class StorageNode:
         return {"status": "OK"}
 
     def set(self, key, value):
-        self.node.set(key, value)
+        self.set(key, value)
         return {"status": "OK"}
 
     def get(self, key):
-        value = self.node.get(key)
+        value = self.get(key)
         if not (value == False):
             return {"status": "OK", "value": value}
         else:

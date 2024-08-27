@@ -35,6 +35,7 @@ def test_kademlia_queue_node():
     node1.bootstrap([node2.node_data, node3.node_data, node4.node_data])
 
     queue = "test_queue"
+    node1.init_queue(queue)
 
     # Caso de prueba 1: Insertar un solo elemento en la cola y luego eliminarlo
     node1.push(queue, "single_element")
@@ -75,7 +76,10 @@ def test_kademlia_queue_node():
     # Caso de prueba 5: Eliminar de una cola vacía
     result = node1.pop(queue)
     assert result == None, f"Error en el test de cola vacía: {result}"
-
+    node1.init_queue("queue1")
+    node1.init_queue("queue2")
+    node1.init_queue("queue3")
+    node1.init_queue("queue4")
     # Caso de prueba 6: Crear múltiples colas en diferentes nodos y verificar la integridad
     node1.push("queue1", "node1_queue1_value")
     node2.push("queue2", "node2_queue2_value")

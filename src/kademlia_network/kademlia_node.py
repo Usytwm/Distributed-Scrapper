@@ -125,7 +125,7 @@ class KademliaNode:
             address, "ping", {"sender_node_data": self.node_data.to_json()}
         )
         if response is None:
-            print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
 
         return response.get("status") == "OK"
@@ -139,7 +139,7 @@ class KademliaNode:
             {"sender_node_data": self.node_data.to_json(), "key": key, "value": value},
         )
         if response is None:
-            print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
 
         return response.get("status") == "OK"
@@ -153,7 +153,7 @@ class KademliaNode:
             {"sender_node_data": self.node_data.to_json(), "key": key},
         )
         if response is None:
-            print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
         return (
             (response.get("value"), True)
@@ -170,7 +170,7 @@ class KademliaNode:
             {"sender_node_data": self.node_data.to_json(), "key": key},
         )
         if response is None:
-            print(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
         return [KademliaNodeData.from_json(node) for node in response.get("nodes")]
 
@@ -181,13 +181,13 @@ class KademliaNode:
             response.raise_for_status()
             return response.json()
         except requests.Timeout:
-            print(f"Timeout occurred when calling {url}")
+            log.info(f"Timeout occurred when calling {url}")
             return None
         except requests.ConnectionError as e:
-            print(f"Connection refused or network error when calling {url}: {e}")
+            log.info(f"Connection refused or network error when calling {url}: {e}")
             return None
         except requests.RequestException as e:
-            print(f"RequestException occurred when calling {url}: {e}")
+            log.info(f"RequestException occurred when calling {url}: {e}")
             return None
 
     def welcome_if_new(self, node: KademliaNodeData):
