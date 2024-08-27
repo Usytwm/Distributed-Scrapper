@@ -19,12 +19,12 @@ class Worker_Node(KademliaHeapNode):
         self.configure_worker_endpoints()
 
     def configure_worker_endpoints(self):
-        @self.app.route("/global/ping", methods=["GET"])
+        @self.app.route("/global_ping", methods=["POST"])
         def global_ping():
             response = self.global_ping()
             return jsonify(response), 200
 
-        @self.app.route("/leader/update_admins_entry_points")
+        @self.app.route("/leader/update_admins_entry_points", methods=["POST"])
         def update_admins_entry_points_as_leader():
             data = request.get_json(force=True)
             register_idx = data.get("register_idx")
