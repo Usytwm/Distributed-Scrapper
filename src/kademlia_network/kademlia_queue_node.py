@@ -1,4 +1,4 @@
-from kademlia_list_node import KademliaListNode
+from src.kademlia_network.kademlia_list_node import KademliaListNode
 from src.Interfaces.IStorage import IStorage
 from flask import request, jsonify
 from typing import Tuple
