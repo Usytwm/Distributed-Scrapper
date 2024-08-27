@@ -1,9 +1,14 @@
-from kademlia_node import KademliaNode
+from kademlia_list_node import KademliaListNode
 from src.Interfaces.IStorage import IStorage
 from flask import request, jsonify
+from typing import Tuple
 
 
-class KademliaQueueNode(KademliaNode):
+class EmptyQueueException(Exception):
+    pass
+
+
+class KademliaQueueNode(KademliaListNode):
     def __init__(
         self,
         node_id=None,
@@ -16,72 +21,41 @@ class KademliaQueueNode(KademliaNode):
     ):
         super().__init__(node_id, storage, ip, port, ksize, alpha)
         self.max_chunk_size = max_chunk_size
-        self.init_new_endpoints()
+        self.configure_queue_endpoints()
 
-    def init_new_endpoints(self):
-        @self.app.route("/push_as_leader")
-        def push_as_leader():
-            data = request.get_json(force=True)
-            queue, value = data.get("queue"), data.get("value")
-            response = self.push_as_leader(queue, value)
-            return jsonify(response), 200
-
-        @self.app.route("/pop_as_leader")
+    def configure_queue_endpoints(self):
+        @self.app.route("/leader/pop")
         def pop_as_leader():
             data = request.get_json(force=True)
             queue = data.get("queue")
             response = self.pop_as_leader(queue)
             return jsonify(response), 200
 
-    def push_as_leader(self, queue, value):
-        response = self.get(f"{queue}_current_chunks")
-        if response == False:
-            response = (0, 0)
-            self.set(f"{queue}_current_chunks", response)
-            self.set(f"{queue}_chunk_{0}", [])
-        start_idx, end_idx = response
-        chunk = self.get(f"{queue}_chunk_{end_idx}")
-        chunk.append(value)
-        self.set(f"{queue}_chunk_{end_idx}", chunk)
-        if len(chunk) == self.max_chunk_size:
-            self.set(f"{queue}_current_chunks", (start_idx, end_idx + 1))
-            self.set(f"{queue}_chunk_{end_idx + 1}", [])
-        return {"status": "OK"}
-
     def pop_as_leader(self, queue):
-        response = self.get(f"{queue}_current_chunks")
-        if response == False:
-            return {"status": "OK", "value": None}
-        start_idx, end_idx = response
-        chunk = self.get(f"{queue}_chunk_{start_idx}")
-        answer = chunk[0]
-        chunk = chunk[1:]
-        self.set(f"{queue}_chunk_{start_idx}", chunk)
-        if len(chunk) == 0:
-            self.set(f"{queue}_current_chunks", (start_idx + 1, end_idx))
-        return {"status": "OK", "value": answer}
-
-    def find_leader(self):
-        return self.lookup(0)[0]
+        first_idx = self.get_first_idx(queue)
+        if first_idx == self.get_length(queue):
+            raise EmptyQueueException(f"{queue} is empty")
+        value = self.list_get(queue, first_idx)
+        self.set_first_idx(queue, first_idx + 1)
+        return {"status": "OK", "value": value}
 
     def push(self, queue, value):
-        leader = self.find_leader()
-        address = f"{leader.ip}:{leader.port}"
-        data = {"queue": queue, "value": value}
-        response = self.call_rpc(address, "push_as_leader", data)
-        if response is None:
-            print(f"No response from node {address}")
-            return False
-
-        return response.get("status") == "OK"
+        self.append(queue, value)
 
     def pop(self, queue):
-        leader = self.find_leader()
-        address = f"{leader.ip}:{leader.port}"
+        address = self.find_leader_address()
         data = {"queue": queue}
-        response = self.call_rpc(address, "push_as_leader", data)
+        response = self.call_rpc(address, "/leader/pop", data)
         if response is None:
             print(f"No response from node {address}")
             return False
-
         return response.get("status") == "OK"
+
+    def get_first_idx(self, queue):
+        first_idx = self.get(f"{queue}_first")
+        if first_idx == False:
+            return 0
+        return first_idx
+
+    def set_first_idx(self, queue, idx):
+        self.set(f"{queue}_first", idx)

@@ -47,7 +47,7 @@ class KademliaNode:
         self.router = Routing_Table(self, ksize)
         self.node_data = KademliaNodeData(ip=self.host, port=self.port, id=self.id)
         self.app = Flask(__name__)
-        self.configure_endpoints()
+        self.configure_kademlia_endpoints()
 
     def listen(self):
         def run_app():
@@ -63,7 +63,7 @@ class KademliaNode:
         # Enviar señal para detener el servidor Flask
         os.kill(os.getpid(), signal.SIGINT)
 
-    def configure_endpoints(self):
+    def configure_kademlia_endpoints(self):
         @self.app.route("/ping", methods=["POST"])
         def ping():
             data = request.get_json(force=True)

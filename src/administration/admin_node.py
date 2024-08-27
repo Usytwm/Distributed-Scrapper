@@ -2,37 +2,84 @@ import logging
 import requests
 from flask import Flask, request, jsonify
 from threading import Thread
-from kademlia_network.kademlia_node import KademliaNode
+from kademlia_network.kademlia_queue_node import KademliaQueueNode
 from Interfaces.NodeData import NodeData
+from src.Interfaces.IStorage import IStorage
+from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
 log = logging.getLogger(__name__)
 
 
-class Admin_Node:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.node = KademliaNode(ip=self.host, port=self.port)
-        self.app = Flask(__name__)
-        self.configure_endpoints()
+class Admin_Node(KademliaQueueNode):
+    def __init__(
+        self,
+        node_id=None,
+        storage: IStorage = None,
+        ip=None,
+        port=None,
+        ksize: int = 2,
+        alpha=3,
+        max_chunk_size=2,
+    ):
+        super().__init__(node_id, storage, ip, port, ksize, alpha)
+        self.max_chunk_size = max_chunk_size
+        self.configure_admin_endpoints()
+        self.is_leader = False
 
-    def listen(self):
-        def run_app():
-            self.app.run(host=self.host, port=self.port, threaded=True)
-
-        thread = Thread(target=run_app)
-        thread.start()
-
-    def stop(self):
-        pass
-
-    def configure_endpoints(self):
-        @self.app.route("/register")
-        def register():
+    def configure_admin_endpoints(self):
+        @self.app.route("/follower/register", methods=["POST"])
+        def follower_register():
             data = request.get_json(force=True)
-            node = NodeData.from_json(data.get("node"))
-            response = self.register(node)
-            return jsonify(response), 200
-    
-    def register(self, node : NodeData):
-        
+            role, node = data.get("role"), data.get("node")
+            match role:
+                case "admin":
+                    node = KademliaNodeData.from_json(node)
+                case "scrapper":
+                    node = NodeData.from_json(node)
+                case "storage":
+                    node = NodeData.from_json(node)
+            self.follower_register(role, node)
+            return jsonify({"status": "OK"}), 200
+
+        @self.app.route("/leader/register", methods=["POST"])
+        def leader_register():
+            data = request.get_json(force=True)
+            role, node = data.get("role"), data.get("node")
+            self.leader_register(role, node)
+            return jsonify({"status": "OK"}), 200
+
+        @self.app.route("/leader/run", methods=["POST"])
+        def leader_run():
+            self.leader_run()
+            return jsonify({"status": "OK"}), 200
+
+        @self.app.route("/leader/handle_scrap_result")
+        def handle_scrap_result():
+            data = request.get_json(force=True)
+            urls = data.get("url")
+            scrapper = NodeData.from_json(data.get("scrapper"))
+            state = data.get("state")
+            self.handle_scrap_result(urls, scrapper, state)
+            return jsonify({"status": "OK"}), 200
+
+        @self.app.route("/follower/scrap")
+        def scrap():
+            data = request.get_json(force=True)
+            url = data.get("url")
+            scrapper = NodeData.from_json(data.get("scrapper"))
+            follower_scrap(scrapper, url)
+
+        def follower_register(self, role, node):
+            pass
+
+        def leader_register(self, role, node):
+            pass
+
+        def leader_run(self):
+            pass
+
+        def handle_scrap_results(self, urls, scrapper, state):
+            pass
+
+        def follower_scrap(self, scrapper, url):
+            pass

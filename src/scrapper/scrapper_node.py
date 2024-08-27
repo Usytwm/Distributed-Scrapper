@@ -86,4 +86,3 @@ class Scrapper_Node:
         except Exception as e:
             log.error(f"Unexpected error: {e}")
             return jsonify({"error": "Internal server error"}), 500
-
