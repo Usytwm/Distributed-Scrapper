@@ -1,10 +1,9 @@
 import logging
 from typing import List
-import requests
 from flask import Flask, request, jsonify
 from threading import Thread
-from kademlia_network.kademlia_queue_node import KademliaQueueNode
-from Interfaces.NodeData import NodeData
+from src.kademlia_network.kademlia_queue_node import KademliaQueueNode
+from src.Interfaces.NodeData import NodeData
 from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
@@ -21,11 +20,13 @@ class Admin_Node(KademliaQueueNode):
         ksize: int = 2,
         alpha=3,
         max_chunk_size=2,
+        max_depth=2,
     ):
         super().__init__(node_id, storage, ip, port, ksize, alpha)
         self.max_chunk_size = max_chunk_size
         self.configure_admin_endpoints()
         self.is_leader = False
+        self.max_depth = max_depth
 
     def configure_admin_endpoints(self):
         @self.app.route("/global_ping", methods=["POST"])
@@ -38,7 +39,11 @@ class Admin_Node(KademliaQueueNode):
             role, node = data.get("role"), data.get("node")
             node = KademliaNodeData.from_json(node)
             response = self.follower_register(role, node)
-            return jsonify(response), 200
+            if response is None:
+                return jsonify({"status": "ERROR"}), 500
+            if response == False:
+                return jsonify({"status": "ERROR"}), 400
+            return jsonify({"status": "OK"}), 200
 
         @self.app.route("/leader/register", methods=["POST"])
         def leader_register():
@@ -61,23 +66,25 @@ class Admin_Node(KademliaQueueNode):
         def leader_address():
             return jsonify({"status": "OK", "address": self.find_leader_address()})
 
-        @self.app.route("/leader/handle_scrap_result")
+        @self.app.route("/leader/handle_scrap_result", methods=["POST"])
         def handle_scrap_result():
             data = request.get_json(force=True)
             urls = data.get("url")
-            scrapper = NodeData.from_json(data.get("scrapper"))
+            scrapper = data.get("scrapper")
+            scrapper = KademliaNodeData.from_json(scrapper)
             state = data.get("state")
             depth = data.get("depth")
             self.handle_scrap_results(urls, scrapper, state, depth)
             return jsonify({"status": "OK"}), 200
 
-        @self.app.route("/follower/scrap")
+        @self.app.route("/follower/scrap", methods=["POST"])
         def follower_scrap():
             data = request.get_json(force=True)
             url, depth = data.get("url"), data.get("depth")
             scrapper = KademliaNodeData.from_json(data.get("scrapper"))
             storage = KademliaNodeData.from_json(data.get("storage"))
             self.follower_scrap(scrapper, url, storage, depth)
+            return jsonify({"status": "OK"}), 200
 
     def follower_register(self, role, node: KademliaNodeData):
         address = self.find_leader_address()
@@ -111,7 +118,7 @@ class Admin_Node(KademliaQueueNode):
         scrapper_address = f"{scrapper.ip}:{scrapper.port}"
         storage_address = f"{storage.ip}:{storage.port}"
         response = self.call_rpc(scrapper_address, "scrap", {"url": url})
-        if response is None:
+        if response is None or response.get("error") is not None:
             log.info(f"No response from node {scrapper_address}")
             data = {
                 "url": [url],
@@ -120,10 +127,10 @@ class Admin_Node(KademliaQueueNode):
                 "depth": depth,
             }
         else:
-            response = self.call_rpc(
+            response_storage = self.call_rpc(
                 storage_address, "set", {"key": url, "value": response.get("content")}
             )
-            if response is None:
+            if response_storage is None:
                 log.info(f"No response from node {scrapper_address}")
                 data = {
                     "url": [url],
