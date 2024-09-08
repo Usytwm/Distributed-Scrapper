@@ -4,7 +4,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from flask import jsonify, request
 import requests
-from Interfaces.WorkerNode import Worker_Node
+
+from src.Interfaces.WorkerNode import Worker_Node
 
 log = logging.getLogger(__name__)
 

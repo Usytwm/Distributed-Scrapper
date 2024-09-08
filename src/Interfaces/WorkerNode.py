@@ -1,13 +1,8 @@
 import logging
-import os
-import signal
-import requests
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from flask import Flask, request, jsonify
-from threading import Thread
+from flask import request, jsonify
 from typing import List
-from kademlia_network.kademlia_heap_node import KademliaHeapNode
+
+from src.kademlia_network.kademlia_heap_node import KademliaHeapNode
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
 log = logging.getLogger(__name__)
@@ -15,7 +10,7 @@ log = logging.getLogger(__name__)
 
 class Worker_Node(KademliaHeapNode):
     def __init__(self, host, port):
-        super().__init__(host=host, port=port)
+        super().__init__(ip=host, port=port)
         self.configure_worker_endpoints()
 
     def configure_worker_endpoints(self):
