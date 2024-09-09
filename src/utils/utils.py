@@ -1,6 +1,16 @@
+from enum import Enum
 import hashlib
 import operator
 import asyncio
+
+from flask import json
+
+
+class NodeType(Enum):
+    ADMIN = "admin"
+    SCRAPPER = "scrapper"
+    STORAGE = "storage"
+
 
 N_OF_BITS = 8
 
@@ -41,3 +51,37 @@ def bytes_to_bit_string(bites):
     # Convierte una secuencia de bytes en una cadena de bits
     bits = [bin(bite)[2:].rjust(8, "0") for bite in bites]
     return "".join(bits)
+
+
+def get_nodes_bootstrap(role: NodeType):
+    with open("../config.json") as f:
+        data = json.load(f)
+
+    match role:
+        case NodeType.ADMIN:
+            nodes = data["bootstrap"]["admin"]
+        case NodeType.SCRAPPER:
+            nodes = data["bootstrap"]["scrapper"]
+        case NodeType.STORAGE:
+            nodes = data["bootstrap"]["storage"]
+        case _:
+            nodes = data["bootstrap"]["admin"]
+
+    return nodes
+
+
+def get_nodes(role: NodeType):
+    with open("../config.json") as f:
+        data = json.load(f)
+
+    match role:
+        case NodeType.ADMIN:
+            nodes = data["nodes"]["admin"]
+        case NodeType.SCRAPPER:
+            nodes = data["nodes"]["scrapper"]
+        case NodeType.STORAGE:
+            nodes = data["nodes"]["storage"]
+        case _:
+            nodes = data["nodes"]["admin"]
+
+    return nodes

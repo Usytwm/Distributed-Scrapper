@@ -63,8 +63,11 @@ class KademliaListNode(KademliaNode):
         return {"status": "OK"}
 
     def find_leader_address(self) -> str:
-        leader = self.lookup(0)[0]
-        return f"{leader.ip}:{leader.port}"
+        leaders = self.lookup(0)
+        if leaders and leaders[0]:
+            leader = leaders[0]
+            return f"{leader.ip}:{leader.port}"
+        return None
 
     def init_list(self, list):
         address = self.find_leader_address()

@@ -1,4 +1,6 @@
 import logging
+import threading
+import time
 from typing import List
 from flask import Flask, request, jsonify
 from threading import Thread
@@ -54,12 +56,12 @@ class Admin_Node(KademliaQueueNode):
 
         @self.app.route("/leader/run", methods=["POST"])
         def leader_run():
-            self.leader_run()
+            self.start_leader()
             return jsonify({"status": "OK"}), 200
 
         @self.app.route("/leader/stop", methods=["POST"])
         def leader_stop():
-            self.is_leader = False
+            self.stop_leader()
             return jsonify({"status": "OK"}), 200
 
         @self.app.route("/leader_address", methods=["POST"])
@@ -85,6 +87,16 @@ class Admin_Node(KademliaQueueNode):
             storage = KademliaNodeData.from_json(data.get("storage"))
             self.follower_scrap(scrapper, url, storage, depth)
             return jsonify({"status": "OK"}), 200
+
+    def start_leader(self):
+        # Este nodo se convierte en el líder y comienza el ciclo
+        self.is_leader = True
+        leader_thread = threading.Thread(target=self.leader_run)
+        leader_thread.start()
+
+    def stop_leader(self):
+        # Detiene el ciclo de líder
+        self.is_leader = False
 
     def follower_register(self, role, node: KademliaNodeData):
         address = self.find_leader_address()
