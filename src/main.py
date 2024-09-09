@@ -4,6 +4,8 @@ import logging
 import sys
 from pathlib import Path
 
+from src.utils.utils import NodeType, get_nodes_bootstrap
+
 path_to_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(path_to_root))
 from src.administration.admin_node import Admin_Node
@@ -15,10 +17,10 @@ logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 
-def load_config():
-    # Cargar archivo de configuración JSON con nodos bootstrap
-    with open("config.json", "r") as config_file:
-        return json.load(config_file)
+# def load_config():
+#     # Cargar archivo de configuración JSON con nodos bootstrap
+#     with open("config.json", "r") as config_file:
+#         return json.load(config_file)
 
 
 def main():
@@ -27,7 +29,7 @@ def main():
 
     parser.add_argument(
         "--type",
-        choices=["admin", "scrapper", "storage"],
+        choices=[role.value for role in NodeType],
         required=True,
         help="Tipo de nodo a levantar: admin, scrapper o storage",
     )
@@ -36,36 +38,31 @@ def main():
 
     # Parsear los argumentos de la línea de comandos
     args = parser.parse_args()
+    node_type = NodeType(args.type)
 
     # Cargar configuración
-    config = load_config()
+    # config = load_config()
 
-    # Obtener el nodo bootstrap correcto según el tipo de nodo
-    if args.type == "admin":
-        bootstrap_node = KademliaNodeData(
-            ip=config["bootstrap"]["admin"]["ip"],
-            port=config["bootstrap"]["admin"]["port"],
-        )
+    # Obtener los nodos bootstrap de acuerdo al tipo de nodo
+    bootstrap_node_data = get_nodes_bootstrap(node_type)
+    bootstrap_node = KademliaNodeData(
+        ip=bootstrap_node_data["ip"], port=bootstrap_node_data["port"]
+    )
+
+    # Levantar el nodo según el tipo seleccionado
+    if node_type == NodeType.ADMIN:
         node = Admin_Node(ip=args.ip, port=args.port)
         node.listen()
         node.bootstrap([bootstrap_node])
         log.info(f"Levantando nodo Admin en {args.ip}:{args.port}")
 
-    elif args.type == "scrapper":
-        bootstrap_node = KademliaNodeData(
-            ip=config["bootstrap"]["scrapper"]["ip"],
-            port=config["bootstrap"]["scrapper"]["port"],
-        )
+    elif node_type == NodeType.SCRAPPER:
         node = Scrapper_Node(host=args.ip, port=args.port)
         node.listen()
         node.register(bootstrap_node)
         log.info(f"Levantando nodo Scrapper en {args.ip}:{args.port}")
 
-    elif args.type == "storage":
-        bootstrap_node = KademliaNodeData(
-            ip=config["bootstrap"]["storage"]["ip"],
-            port=config["bootstrap"]["storage"]["port"],
-        )
+    elif node_type == NodeType.STORAGE:
         node = StorageNode(host=args.ip, port=args.port)
         node.listen()
         node.register(bootstrap_node)
