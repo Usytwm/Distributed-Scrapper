@@ -4,7 +4,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from flask import jsonify, request
 import requests
-from Interfaces.WorkerNode import Worker_Node
+
+from src.Interfaces.WorkerNode import Worker_Node
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class Scrapper_Node(Worker_Node):
         self.configure_scrapper_endpoints()
 
     def configure_scrapper_endpoints(self):
-        @self.app.route("/scrap")
+        @self.app.route("/scrap", methods=["POST"])
         def scrap():
             data = request.get_json(force=True)
             url = data.get("url")

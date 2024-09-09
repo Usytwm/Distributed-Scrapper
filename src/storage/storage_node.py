@@ -1,8 +1,8 @@
 from flask import jsonify, request
-from src.Interfaces import WorkerNode
+from src.Interfaces.WorkerNode import Worker_Node
 
 
-class StorageNode(WorkerNode):
+class StorageNode(Worker_Node):
     def __init__(self, host, port):
         super().__init__(host=host, port=port)
         self.configure_storage_endpoint()

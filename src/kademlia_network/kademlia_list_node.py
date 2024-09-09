@@ -63,8 +63,11 @@ class KademliaListNode(KademliaNode):
         return {"status": "OK"}
 
     def find_leader_address(self) -> str:
-        leader = self.lookup(0)[0]
-        return f"{leader.ip}:{leader.port}"
+        leaders = self.lookup(0)
+        if leaders and leaders[0]:
+            leader = leaders[0]
+            return f"{leader.ip}:{leader.port}"
+        return None
 
     def init_list(self, list):
         address = self.find_leader_address()
@@ -102,8 +105,8 @@ class KademliaListNode(KademliaNode):
         y el ultimo chunk"""
         length = self.get_length(list)
         chunk_idx, _, chunk = self.chunk_for_idx(list, length)
-        if chunk == False:
-            chunk = []
+        # if chunk == False:
+        #     chunk = []
         return length, chunk_idx, chunk
 
     def chunk_for_idx(self, list, idx) -> Tuple[int, int, List]:
@@ -113,18 +116,20 @@ class KademliaListNode(KademliaNode):
         y el chunk en si"""
         chunk_idx, idx_in_chunk = idx // self.max_chunk_size, idx % self.max_chunk_size
         chunk = self.get_chunk(list, chunk_idx)
-        if chunk == False:
-            raise IndexError()
+        #! if chunk == False:
+        #!     raise IndexError()
         return chunk_idx, idx_in_chunk, chunk
 
     def set_chunk(self, list, chunk_idx, chunk):
         self.set(f"{list}_chunk_{chunk_idx}", chunk)
 
     def get_chunk(self, list, chunk_idx):
-        return self.get(f"{list}_chunk_{chunk_idx}")
+        chunk = self.get(f"{list}_chunk_{chunk_idx}")
+        return chunk if chunk != False else []
 
     def set_length(self, list, length):
         self.set(f"{list}_length", length)
 
     def get_length(self, list):
-        return self.get(f"{list}_length")
+        length = self.get(f"{list}_length")
+        return length if length != False else 0
