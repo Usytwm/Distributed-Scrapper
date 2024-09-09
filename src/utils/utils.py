@@ -54,7 +54,7 @@ def bytes_to_bit_string(bites):
 
 
 def get_nodes_bootstrap(role: NodeType):
-    with open("../config.json") as f:
+    with open("../config.json", "r") as f:
         data = json.load(f)
 
     match role:
@@ -71,7 +71,7 @@ def get_nodes_bootstrap(role: NodeType):
 
 
 def get_nodes(role: NodeType):
-    with open("../config.json") as f:
+    with open("../config.json", "r") as f:
         data = json.load(f)
 
     match role:
