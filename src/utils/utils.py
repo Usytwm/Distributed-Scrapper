@@ -85,3 +85,33 @@ def get_nodes(role: NodeType):
             nodes = data["nodes"]["admin"]
 
     return nodes
+
+
+def hardcode_urls(
+    admin_node,
+    urls,
+):
+    """
+    Función para hardcodear una serie de URLs en la red a través de un nodo Admin.
+
+    :param admin_node: Instancia del nodo Admin_Node.
+    :param urls: Lista de URLs a agregar a la red.
+    """
+    for url in urls:
+        admin_node.push("urls", (url, admin_node.max_depth))
+        print(f"URL {url} añadida a la red con profundidad {admin_node.max_depth}")
+
+
+# # Ejemplo de URLs hardcodeadas
+# urls_to_scrap = [
+#     "https://www.example.com",
+#     "https://www.wikipedia.org",
+#     "https://www.python.org",
+#     "https://www.github.com",
+#     "https://www.stackoverflow.com",
+#     "https://www.reddit.com",
+#     "https://www.medium.com",
+#     "https://www.nytimes.com",
+#     "https://www.bbc.com",
+#     "https://www.cnn.com"
+# ]
