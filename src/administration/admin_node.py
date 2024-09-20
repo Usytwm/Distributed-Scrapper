@@ -40,12 +40,22 @@ class Admin_Node(KademliaQueueNode):
             data = request.get_json(force=True)
             role, node = data.get("role"), data.get("node")
             node = KademliaNodeData.from_json(node)
-            response = self.follower_register(role, node)
-            if response is None:
+            sucess, entry_points = self.follower_register(role, node)
+            if sucess is None:
                 return jsonify({"status": "ERROR"}), 500
-            if response == False:
+            if sucess == False:
                 return jsonify({"status": "ERROR"}), 400
-            return jsonify({"status": "OK"}), 200
+            return (
+                jsonify(
+                    {
+                        "status": "OK",
+                        "entry points": [
+                            entry_point.to_json() for entry_point in entry_points
+                        ],
+                    }
+                ),
+                200,
+            )
 
         @self.app.route("/leader/register", methods=["POST"])
         def leader_register():
@@ -90,12 +100,14 @@ class Admin_Node(KademliaQueueNode):
 
     def start_leader(self):
         # Este nodo se convierte en el líder y comienza el ciclo
+        log.info(f"Starting leader in {self.host}:{self.port}")
         self.is_leader = True
         leader_thread = threading.Thread(target=self.leader_run)
         leader_thread.start()
 
     def stop_leader(self):
         # Detiene el ciclo de líder
+        log.info(f"Stopping leader in {self.host}:{self.port}")
         self.is_leader = False
 
     def follower_register(self, role, node: KademliaNodeData):
@@ -104,8 +116,11 @@ class Admin_Node(KademliaQueueNode):
         response = self.call_rpc(address, "/leader/register", data)
         if response is None:
             log.info(f"No response from node {address}")
-            return None
-        return response.get("status") == "OK"
+            return None, None
+        entry_points = self.bootstrappable_k_closest()
+        if response.get("status") == "OK":
+            return True, entry_points
+        return False, None
 
     def leader_register(self, role, node: KademliaNodeData):
         self.push(role, node.to_json())

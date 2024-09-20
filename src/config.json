@@ -1,14 +1,17 @@
 {
   "bootstrap": {
     "admin": {
+      "id": "superadmin",
       "ip": "127.0.0.1",
       "port": 8000
     },
     "scrapper": {
+      "id": "superadminscrapper",
       "ip": "127.0.0.1",
       "port": 8001
     },
     "storage": {
+      "id": "superadminstorage",
       "ip": "127.0.0.1",
       "port": 8002
     }

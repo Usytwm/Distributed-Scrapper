@@ -50,16 +50,16 @@ class Worker_Node(KademliaHeapNode):
             self.push("entry points", entry_point.to_json())
         return {"status": "OK"}
 
-    def register(self, entry_points: List[KademliaNodeData]):
+    def register(self, entry_points: List[KademliaNodeData], role: str):
         """Este metodo une el worker a la red. Toma como parametro la direccion de otros nodos worker que
         usara para el bootstrapping. Una vez en la red podra conocer a que entry_points de la red de administradores
         puede solicitarle su registro"""
         self.bootstrap(entry_points)
         idx = self.get_length("entry points") - 1
         while idx >= 0:
-            entry_point = KademliaNodeData.from_json(self.list_get(idx))
+            entry_point = KademliaNodeData.from_json(self.list_get("entry points", idx))
             address = f"{entry_point.ip}:{entry_point.port}"
-            data = {"role": "scrapper", "node": self.node_data.to_json()}
+            data = {"role": role, "node": self.node_data.to_json()}
             response = self.call_rpc(address, "follower/register", data)
             if response and response.get("status") == "OK":
                 address = self.find_leader_address()

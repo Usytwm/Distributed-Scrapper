@@ -17,7 +17,7 @@ from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.kademlia_network.routing_table import Routing_Table
 from src.kademlia_network.storage import Storage
-from src.utils.utils import N_OF_BITS, digest_to_int
+from src.utils.utils import N_OF_BITS, digest_to_int, generate_id
 from sortedcontainers import SortedList
 
 
@@ -36,11 +36,7 @@ class KademliaNode:
     ):
         self.storage = storage or Storage()
         self.alpha = alpha
-        self.id = (
-            node_id
-            if not (node_id is None)
-            else random.randint(0, (1 << N_OF_BITS) - 1)
-        )
+        self.id = node_id if not (node_id is None) else generate_id(ip, port)
         self.host = ip
         self.port = port
         self.ksize = ksize

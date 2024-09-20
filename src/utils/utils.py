@@ -15,6 +15,20 @@ class NodeType(Enum):
 N_OF_BITS = 8
 
 
+def generate_id(ip, port):
+    # Combinar la IP y el puerto en un solo string
+    ip_port_string = f"{ip}:{port}"
+
+    # Generar un hash SHA-256 de la combinación IP:puerto
+    hash_value = hashlib.sha256(ip_port_string.encode()).hexdigest()
+
+    # Convertir el hash a un entero
+    hash_int = int(hash_value, 16)
+
+    # Asegurarse de que el valor está dentro del rango permitido (0 a (1 << N_OF_BITS) - 1)
+    return hash_int % (1 << N_OF_BITS)
+
+
 async def gather_dict(dic):
     # Recopila los resultados de un diccionario de corutinas
     cors = list(dic.values())
