@@ -83,5 +83,40 @@
         "port": 8214
       }
     ]
-  }
+  },
+  "urls": [
+    "https://www.google.com",
+    "https://www.facebook.com",
+    "https://www.twitter.com",
+    "https://www.instagram.com",
+    "https://www.linkedin.com",
+    "https://www.youtube.com",
+    "https://www.pinterest.com",
+    "https://www.tumblr.com",
+    "https://www.reddit.com",
+    "https://www.snapchat.com",
+    "https://www.whatsapp.com",
+    "https://www.skype.com",
+    "https://www.viber.com",
+    "https://www.telegram.com",
+    "https://www.slack.com",
+    "https://www.discord.com",
+    "https://www.messenger.com",
+    "https://www.line.com",
+    "https://www.wechat.com",
+    "https://www.kik.com",
+    "https://www.hike.com",
+    "https://www.signal.com",
+    "https://www.threema.com",
+    "https://www.wickr.com",
+    "https://www.silentcircle.com",
+    "https://www.wire.com",
+    "https://www.surespot.com",
+    "https://www.ricochet.com",
+    "https://www.tox.com",
+    "https://www.jami.com",
+    "https://www.briar.com",
+    "https://www.matrix.com",
+    "https://www.riot.com"
+  ]
 }

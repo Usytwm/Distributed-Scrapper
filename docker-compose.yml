@@ -1,0 +1,84 @@
+version: '3'
+services:
+  # Nodo Admin y sus peers
+  admin:
+    image: mi-imagen:latest
+    container_name: admin_node
+    networks:
+      - kademlia_network
+    ports:
+      - "8000:8000"
+    command: ["--type", "admin", "--ip", "0.0.0.0", "--port", "8000"]
+
+  admin_peer1:
+    image: mi-imagen:latest
+    networks:
+      - kademlia_network
+    ports:
+      - "8010:8010"
+    command: ["--type", "admin", "--ip", "0.0.0.0", "--port", "8010", "--bootstrap", "admin_node:8000"]
+
+  admin_peer2:
+    image: mi-imagen:latest
+    networks:
+      - kademlia_network
+    ports:
+      - "8011:8011"
+    command: ["--type", "admin", "--ip", "0.0.0.0", "--port", "8011", "--bootstrap", "admin_node:8000"]
+
+  # Nodo Scrapper y sus peers
+  scrapper:
+    image: mi-imagen:latest
+    container_name: scrapper_node
+    networks:
+      - kademlia_network
+    ports:
+      - "8001:8001"
+    command: ["--type", "scrapper", "--ip", "0.0.0.0", "--port", "8001"]
+
+  scrapper_peer1:
+    image: mi-imagen:latest
+    networks:
+      - kademlia_network
+    ports:
+      - "8110:8110"
+    command: ["--type", "scrapper", "--ip", "0.0.0.0", "--port", "8110", "--bootstrap", "scrapper_node:8001"]
+
+  scrapper_peer2:
+    image: mi-imagen:latest
+    networks:
+      - kademlia_network
+    ports:
+      - "8111:8111"
+    command: ["--type", "scrapper", "--ip", "0.0.0.0", "--port", "8111", "--bootstrap", "scrapper_node:8001"]
+
+  # Nodo Storage y sus peers
+  storage:
+    image: mi-imagen:latest
+    container_name: storage_node
+    networks:
+      - kademlia_network
+    ports:
+      - "8002:8002"
+    command: ["--type", "storage", "--ip", "0.0.0.0", "--port", "8002"]
+
+  storage_peer1:
+    image: mi-imagen:latest
+    networks:
+      - kademlia_network
+    ports:
+      - "8210:8210"
+    command: ["--type", "storage", "--ip", "0.0.0.0", "--port", "8210", "--bootstrap", "storage_node:8002"]
+
+  storage_peer2:
+    image: mi-imagen:latest
+    networks:
+      - kademlia_network
+    ports:
+      - "8211:8211"
+    command: ["--type", "storage", "--ip", "0.0.0.0", "--port", "8211", "--bootstrap", "storage_node:8002"]
+
+  # Red para la comunicacion entre todos los nodos
+networks:
+  kademlia_network:
+    driver: bridge

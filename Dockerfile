@@ -14,7 +14,5 @@ COPY . .
 # Expone el puerto en el que la aplicación escuchará
 EXPOSE 4142
 
-# Comando para ejecutar la aplicación
-CMD ["python", "src/main.py"]
-
-
+# Permitir que se pasen argumentos dinámicos al momento de ejecutar el contenedor
+ENTRYPOINT ["python", "src/main.py"]
