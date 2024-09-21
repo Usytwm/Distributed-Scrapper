@@ -76,7 +76,8 @@ class KademliaQueueNode(KademliaListNode):
         return response.get("value")
 
     def get_first_idx(self, queue):
-        return self.get(f"{queue}_first")
+        first = self.get(f"{queue}_first")
+        return first if first != False else 0
 
     def set_first_idx(self, queue, idx):
         self.set(f"{queue}_first", idx)

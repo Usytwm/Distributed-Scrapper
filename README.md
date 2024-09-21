@@ -11,6 +11,8 @@ A distributed web scraping network that utilizes specialized nodes for data coll
 
 ```bash
 python src/main.py --type admin -i 127.0.0.1 -p 8000
+
+docker run -d --name admin_node -p 8000:8000 mi-imagen:latest --type admin --ip 0.0.0.0 --port 8000
 ```
 
 ### Nodo admin
@@ -18,6 +20,7 @@ python src/main.py --type admin -i 127.0.0.1 -p 8000
 ```bash
 python src/main.py --type admin -i 127.0.0.1 -p 8001 --bootstrap 127.0.0.1:8000
 ```
+
 
 ## Nodo Bootstrap scrapper
 

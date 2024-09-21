@@ -98,6 +98,28 @@ class Admin_Node(KademliaQueueNode):
             self.follower_scrap(scrapper, url, storage, depth)
             return jsonify({"status": "OK"}), 200
 
+        @self.app.route("/push_url", methods=["POST"])
+        def push_url():
+            data = request.get_json(force=True)
+            url = data.get("url")
+            response = self.push_url(url)
+            if response is None:
+                return jsonify({"status": "ERROR"}), 500
+            return jsonify({"status": "OK"}), 200
+
+        # @self.app.route("/leader/push_url", methods=["POST"])
+        # def leader_push_url():
+        #     data = request.get_json(force=True)
+        #     url, depth = data.get("url"), data.get("depth")
+        #     self.__push_url_admin(url, depth)
+        #     return jsonify({"status": "OK"}), 200
+
+    # def __push_url_admin(self, url, depth):
+    #     self.push("urls", (url, depth))
+
+    def push_url(self, url):
+        return self.push("urls", (url, 0))
+
     def start_leader(self):
         # Este nodo se convierte en el líder y comienza el ciclo
         log.info(f"Starting leader in {self.host}:{self.port}")
@@ -127,6 +149,8 @@ class Admin_Node(KademliaQueueNode):
 
     def leader_run(self):
         while self.is_leader:
+            #!Aqui creo que hay errores en coimo se guardan las listas y en como se buscan los datos,
+            #! no tien ele mismo formato, por ejemplo se guarda _firs_scrapper y se quiere acceder como _fisrt_scrapper_chunk
             self.scrap_if_able()
             self.update_in_process()
 

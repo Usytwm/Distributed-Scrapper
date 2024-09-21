@@ -4,6 +4,7 @@ import logging
 import sys
 from pathlib import Path
 
+#! cuando se une un nodos nuevo, verificar sui es menor que el lider, de ser asi este pasa a ser el lider y se infroma a la red
 
 path_to_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(path_to_root))
@@ -74,7 +75,7 @@ def main():
                 node.bootstrap(bootstrap_nodes)
             else:
                 # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-                node.leader_run()
+                node.start_leader()
             log.info(f"Levantando nodo Admin en {args.ip}:{args.port}")
         case NodeType.SCRAPPER:
             node = Scrapper_Node(host=args.ip, port=args.port)
