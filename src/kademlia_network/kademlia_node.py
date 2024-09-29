@@ -150,7 +150,7 @@ class KademliaNode:
         )
         if response is None:
             log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
-            return False
+            return (-1, False)
         return (
             (response.get("value"), True)
             if "value" in response
@@ -289,10 +289,10 @@ class KademliaNode:
 
         return True
 
-    def get(self, dkey):
+    def get(self, key):
         """Busca un valor en la red"""
-        log.info(f"Looking up key {dkey}")
-        dkey = digest_to_int(dkey, num_bits=N_OF_BITS)
+        log.info(f"Looking up key {key}")
+        dkey = digest_to_int(key, num_bits=N_OF_BITS)
         closest = self.lookup(dkey)
         results = []
 

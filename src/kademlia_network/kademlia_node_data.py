@@ -32,4 +32,6 @@ class KademliaNodeData:
         return f"ID:{self.id} -> ADRESS:{self.ip}:{self.port}"
 
     def __eq__(self, value: "KademliaNodeData") -> bool:
+        if value is None:
+            return False
         return self.id == value.id and self.ip == value.ip and self.port == value.port

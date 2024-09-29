@@ -15,11 +15,14 @@ class StorageNode(Worker_Node):
             response = self.set(key, value)
             return jsonify(response), 200
 
-        @self.app.route("/get", methods=["GET"])
+        @self.app.route("/get", methods=["POST"])
         def get():
             data = request.get_json(force=True)
             key = data.get("key")
             response = self.get(key)
+            if not response:
+                return jsonify({"status": "OK", "value": None}), 200
+            response = {"status": "OK", "value": response}
             return jsonify(response), 200
 
 

@@ -107,16 +107,6 @@ class Admin_Node(KademliaQueueNode):
                 return jsonify({"status": "ERROR"}), 500
             return jsonify({"status": "OK"}), 200
 
-        # @self.app.route("/leader/push_url", methods=["POST"])
-        # def leader_push_url():
-        #     data = request.get_json(force=True)
-        #     url, depth = data.get("url"), data.get("depth")
-        #     self.__push_url_admin(url, depth)
-        #     return jsonify({"status": "OK"}), 200
-
-    # def __push_url_admin(self, url, depth):
-    #     self.push("urls", (url, depth))
-
     def push_url(self, url):
         return self.push("urls", (url, 0))
 
@@ -143,6 +133,25 @@ class Admin_Node(KademliaQueueNode):
         if response.get("status") == "OK":
             return True, entry_points
         return False, None
+
+    def register(self, entry_points: List[KademliaNodeData], role: str):
+        """Este metodo une el worker a la red. Toma como parametro la direccion de otros nodos worker que
+        usara para el bootstrapping. Una vez en la red podra conocer a que entry_points de la red de administradores
+        puede solicitarle su registro"""
+        register = False
+        if entry_points:
+            self.bootstrap(entry_points)
+            for entry_point in entry_points:
+                address = f"{entry_point.ip}:{entry_point.port}"
+                data = {"role": role, "node": self.node_data.to_json()}
+                response = self.call_rpc(address, "follower/register", data)
+                if response and response.get("status") == "OK":
+                    register = True
+                    break
+        else:
+            register = self.push(role, self.node_data.to_json())
+
+        return register
 
     def leader_register(self, role, node: KademliaNodeData):
         self.push(role, node.to_json())
@@ -204,7 +213,7 @@ class Admin_Node(KademliaQueueNode):
             url, depth = self.pop("urls")
             scrapper, _ = self.select("scrapper", reinsert=False)
             storage, _ = self.select("storage")
-            if (scrapper != None) and (storage != None):
+            if all(x is not None for x in [scrapper, storage, admin]):
                 data = {
                     "url": url,
                     "scrapper": scrapper.to_json(),
@@ -221,10 +230,16 @@ class Admin_Node(KademliaQueueNode):
         if not self.is_empty("in_process"):
             url, admin = self.pop("in_process")
             _, storage_address = self.select("storage")
-            response = self.call_rpc(storage_address, "get", url)
-            if response.get("value") == None and not self.call_ping(
-                KademliaNodeData.from_json(admin)
-            ):
+            data = {"key": url}
+            response = self.call_rpc(storage_address, "get", data)
+            try:
+                value = self.call_ping(KademliaNodeData.from_json(admin))
+            except Exception as e:
+                log.info(
+                    f"Error: {e}"
+                )  #! Aquie esta dando error ya quee sta cogiedo un valor que no es en esta linea (url, admin = self.pop("in_process"))
+
+            if response is not None and response.get("value") == None and not value:
                 self.push("urls", url)
             else:
                 self.push("in_process", (url, admin))

@@ -52,10 +52,12 @@ def start_node(node_type, ip, port, bootstrap_nodes=None):
         node.listen()
         if bootstrap_nodes:
             # Conectar a nodos bootstrap
-            node.bootstrap(bootstrap_nodes)
+            node.register(bootstrap_nodes, NodeType.ADMIN.value)
+            # node.bootstrap(bootstrap_nodes)
         else:
             # Nodo bootstrap
             node.start_leader()
+            node.register([], NodeType.ADMIN.value)
         log.info(f"Levantando nodo Admin en {ip}:{port}")
         return node
 
@@ -67,8 +69,8 @@ def start_node(node_type, ip, port, bootstrap_nodes=None):
         else:
             config = load_config()
             server_register = KademliaNodeData(
-                config["bootstrap"]["admin"]["ip"],
-                config["bootstrap"]["admin"]["port"],
+                ip=config["bootstrap"]["admin"]["ip"],
+                port=config["bootstrap"]["admin"]["port"],
             )
             # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
             node.push("entry points", server_register.to_json())
@@ -86,7 +88,8 @@ def start_node(node_type, ip, port, bootstrap_nodes=None):
             log.info("No hay nodos bootstrap para Storage, este es el nodo bootstrap.")
             config = load_config()
             server_register = KademliaNodeData(
-                config["bootstrap"]["admin"]["ip"], config["bootstrap"]["admin"]["port"]
+                ip=config["bootstrap"]["admin"]["ip"],
+                port=config["bootstrap"]["admin"]["port"],
             )
             # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
             node.push("entry points", server_register.to_json())
@@ -131,7 +134,7 @@ def main():
     storage_node_1 = start_node(
         NodeType.STORAGE,
         "127.0.0.1",
-        10001,
+        100001,
         [KademliaNodeData(ip="127.0.0.1", port=10000)],
     )
     storage_node_2 = start_node(
@@ -147,8 +150,9 @@ def main():
     response = requests.post("http://127.0.0.1:8002/push_url", json=data)
 
     while True:
-        time.sleep(10)
-
+        time.sleep(100)
+        break
+    x = storage_bootstrap.get("https://www.iana.org/help/example-domains")
     # Ahora tienes acceso a los nodos y puedes inspeccionar o interactuar con ellos.
     log.info(f"Admin Bootstrap: {admin_bootstrap}")
     log.info(f"Scrapper Bootstrap: {scrapper_bootstrap}")
