@@ -158,14 +158,14 @@ def main():
     ]
     answers = []
     while True:
-        time.sleep(20)
-        # for url in queries[len(answers) :]:
-        #     answer = storage_bootstrap.get(url)
-        #     if not answer:
-        #         break
-        #     answers.append(answer)
-        # if len(answers) == len(queries):
-        # break
+        time.sleep(3)
+        for url in queries[len(answers) :]:
+            answer = storage_bootstrap.get(url)
+            if not answer:
+                break
+            answers.append(answer)
+        if len(answers) == len(queries):
+            break
 
     x = storage_bootstrap.get("https://example.com")
     y = storage_node_1.get("https://www.iana.org/domains/example")

@@ -236,22 +236,11 @@ class Admin_Node(KademliaQueueNode):
             _, storage_address = self.select("storage")
             data = {"key": url}
             response = self.call_rpc(storage_address, "get", data)
-            try:
-                value = self.call_ping(KademliaNodeData.from_json(admin))
-            except Exception as e:
-                log.info(
-                    f"Error: {e}"
-                )  #! Aquie esta dando error ya quee sta cogiedo un valor que no es en esta linea (url, admin = self.pop("in_process"))
-
+            value = self.call_ping(KademliaNodeData.from_json(admin))
             if response is None or not value:
                 self.push("urls", url)
             elif response.get("value") == None:
                 self.push("in_process", (url, admin))
-
-            # if response is not None and response.get("value") == None and not value:
-            #    self.push("urls", url)
-            # else:
-            #    self.push("in_process", (url, admin))
 
     def select(self, role, reinsert=True):
         while not self.is_empty(role):
