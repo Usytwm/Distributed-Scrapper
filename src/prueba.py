@@ -2,14 +2,15 @@ import logging
 import sys
 from pathlib import Path
 import time
-
 import requests
+import subprocess
+import os
 
 
 path_to_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(path_to_root))
 
-from src.main import load_config
+from src.main import load_config, start_node
 from src.administration.admin_node import Admin_Node
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.scrapper.scrapper_node import Scrapper_Node
@@ -18,9 +19,6 @@ from src.utils.utils import NodeType
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
-
-import subprocess
-import os
 
 
 def kill_processes_on_port(port):
@@ -42,60 +40,6 @@ def kill_processes_on_port(port):
                 print(f"No se pudo terminar el proceso con PID {pid}: {e}")
     else:
         print(f"No se encontraron procesos en el puerto {port}.")
-
-
-def start_node(node_type, ip, port, bootstrap_nodes=None):
-    bootstrap_nodes = bootstrap_nodes or []
-
-    if node_type == NodeType.ADMIN:
-        node = Admin_Node(ip=ip, port=port)
-        node.listen()
-        if bootstrap_nodes:
-            # Conectar a nodos bootstrap
-            node.register(bootstrap_nodes, NodeType.ADMIN.value)
-            # node.bootstrap(bootstrap_nodes)
-        else:
-            # Nodo bootstrap
-            node.start_leader()
-            node.register([], NodeType.ADMIN.value)
-        log.info(f"Levantando nodo Admin en {ip}:{port}")
-        return node
-
-    elif node_type == NodeType.SCRAPPER:
-        node = Scrapper_Node(host=ip, port=port)
-        node.listen()
-        if bootstrap_nodes:
-            node.register(bootstrap_nodes, NodeType.SCRAPPER.value)
-        else:
-            config = load_config()
-            server_register = KademliaNodeData(
-                ip=config["bootstrap"]["admin"]["ip"],
-                port=config["bootstrap"]["admin"]["port"],
-            )
-            # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-            node.push("entry points", server_register.to_json())
-            node.register([], NodeType.SCRAPPER.value)
-            log.info("No hay nodos bootstrap para Scrapper, este es el nodo bootstrap.")
-        log.info(f"Levantando nodo Scrapper en {ip}:{port}")
-        return node
-
-    elif node_type == NodeType.STORAGE:
-        node = StorageNode(host=ip, port=port)
-        node.listen()
-        if bootstrap_nodes:
-            node.register(bootstrap_nodes, NodeType.STORAGE.value)
-        else:
-            log.info("No hay nodos bootstrap para Storage, este es el nodo bootstrap.")
-            config = load_config()
-            server_register = KademliaNodeData(
-                ip=config["bootstrap"]["admin"]["ip"],
-                port=config["bootstrap"]["admin"]["port"],
-            )
-            # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-            node.push("entry points", server_register.to_json())
-            node.register([], NodeType.STORAGE.value)
-        log.info(f"Levantando nodo Storage en {ip}:{port}")
-        return node
 
 
 def main():

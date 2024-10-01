@@ -27,6 +27,60 @@ def load_config():
         return json.load(config_file)
 
 
+def start_node(node_type, ip, port, bootstrap_nodes=None):
+    bootstrap_nodes = bootstrap_nodes or []
+
+    if node_type == NodeType.ADMIN:
+        node = Admin_Node(ip=ip, port=port)
+        node.listen()
+        if bootstrap_nodes:
+            # Conectar a nodos bootstrap
+            node.register(bootstrap_nodes, NodeType.ADMIN.value)
+            # node.bootstrap(bootstrap_nodes)
+        else:
+            # Nodo bootstrap
+            node.start_leader()
+            node.register([], NodeType.ADMIN.value)
+        log.info(f"Levantando nodo Admin en {ip}:{port}")
+        return node
+
+    elif node_type == NodeType.SCRAPPER:
+        node = Scrapper_Node(host=ip, port=port)
+        node.listen()
+        if bootstrap_nodes:
+            node.register(bootstrap_nodes, NodeType.SCRAPPER.value)
+        else:
+            config = load_config()
+            server_register = KademliaNodeData(
+                ip=config["bootstrap"]["admin"]["ip"],
+                port=config["bootstrap"]["admin"]["port"],
+            )
+            # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
+            node.push("entry points", server_register.to_json())
+            node.register([], NodeType.SCRAPPER.value)
+            log.info("No hay nodos bootstrap para Scrapper, este es el nodo bootstrap.")
+        log.info(f"Levantando nodo Scrapper en {ip}:{port}")
+        return node
+
+    elif node_type == NodeType.STORAGE:
+        node = StorageNode(host=ip, port=port)
+        node.listen()
+        if bootstrap_nodes:
+            node.register(bootstrap_nodes, NodeType.STORAGE.value)
+        else:
+            log.info("No hay nodos bootstrap para Storage, este es el nodo bootstrap.")
+            config = load_config()
+            server_register = KademliaNodeData(
+                ip=config["bootstrap"]["admin"]["ip"],
+                port=config["bootstrap"]["admin"]["port"],
+            )
+            # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
+            node.push("entry points", server_register.to_json())
+            node.register([], NodeType.STORAGE.value)
+        log.info(f"Levantando nodo Storage en {ip}:{port}")
+        return node
+
+
 def main():
     # Configurar argparse para recibir los parámetros por consola
     parser = argparse.ArgumentParser(description="Levanta un nodo en la red")
@@ -66,49 +120,7 @@ def main():
             bootstrap_nodes.append(KademliaNodeData(ip=ip, port=int(port)))
 
     # Levantar el nodo según el tipo seleccionado
-    match node_type:
-        case NodeType.ADMIN:
-            node = Admin_Node(ip=args.ip, port=args.port)
-            node.listen()
-            if bootstrap_nodes and len(bootstrap_nodes) > 0:
-                # Si hay nodos bootstrap, conectarse a ellos
-                node.bootstrap(bootstrap_nodes)
-            else:
-                # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-                node.start_leader()
-            log.info(f"Levantando nodo Admin en {args.ip}:{args.port}")
-        case NodeType.SCRAPPER:
-            node = Scrapper_Node(host=args.ip, port=args.port)
-            node.listen()
-            if bootstrap_nodes and len(bootstrap_nodes) > 0:
-                # Registrar el nodo en los nodos bootstrap
-                node.register(bootstrap_nodes, NodeType.SCRAPPER.value)
-            else:
-                config = load_config()
-                server_register = KademliaNodeData.from_json(
-                    config["bootstrap"]["admin"]
-                )
-                log.info(f"Server register: {server_register}")
-                # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-                node.push("entry points", server_register.to_json())
-                node.register([], NodeType.SCRAPPER.value)
-
-            log.info(f"Levantando nodo Scrapper en {args.ip}:{args.port}")
-        case NodeType.STORAGE:
-            node = StorageNode(host=args.ip, port=args.port)
-            node.listen()
-            if bootstrap_nodes and len(bootstrap_nodes) > 0:
-                # Registrar el nodo en los nodos bootstrap
-                node.register(bootstrap_nodes, NodeType.STORAGE.value)
-            else:
-                config = load_config()
-                server_register = KademliaNodeData.from_json(
-                    config["bootstrap"]["admin"]
-                )
-                # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-                node.push("entry points", server_register.to_json())
-                node.register([], NodeType.STORAGE.value)
-            log.info(f"Levantando nodo Storage en {args.ip}:{args.port}")
+    node = start_node(node_type, args.ip, args.port, bootstrap_nodes)
 
 
 if __name__ == "__main__":
