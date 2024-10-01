@@ -22,7 +22,7 @@ class Admin_Node(KademliaQueueNode):
         ksize: int = 2,
         alpha=3,
         max_chunk_size=2,
-        max_depth=2,
+        max_depth=1,
     ):
         super().__init__(node_id, storage, ip, port, ksize, alpha)
         self.max_chunk_size = max_chunk_size
@@ -158,8 +158,6 @@ class Admin_Node(KademliaQueueNode):
 
     def leader_run(self):
         while self.is_leader:
-            #!Aqui creo que hay errores en coimo se guardan las listas y en como se buscan los datos,
-            #! no tien ele mismo formato, por ejemplo se guarda _firs_scrapper y se quiere acceder como _fisrt_scrapper_chunk
             self.scrap_if_able()
             self.update_in_process()
 
@@ -188,7 +186,13 @@ class Admin_Node(KademliaQueueNode):
             }
         else:
             response_storage = self.call_rpc(
-                storage_address, "set", {"key": url, "value": response.get("content")}
+                storage_address,
+                "set",
+                {
+                    "key": url,
+                    "value": response.get("content"),
+                    "redirection": response.get("redirection"),
+                },
             )
             if response_storage is None:
                 log.info(f"No response from node {scrapper_address}")
@@ -239,10 +243,15 @@ class Admin_Node(KademliaQueueNode):
                     f"Error: {e}"
                 )  #! Aquie esta dando error ya quee sta cogiedo un valor que no es en esta linea (url, admin = self.pop("in_process"))
 
-            if response is not None and response.get("value") == None and not value:
+            if response is None or not value:
                 self.push("urls", url)
-            else:
+            elif response.get("value") == None:
                 self.push("in_process", (url, admin))
+
+            # if response is not None and response.get("value") == None and not value:
+            #    self.push("urls", url)
+            # else:
+            #    self.push("in_process", (url, admin))
 
     def select(self, role, reinsert=True):
         while not self.is_empty(role):

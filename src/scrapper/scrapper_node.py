@@ -28,6 +28,8 @@ class Scrapper_Node(Worker_Node):
             response = requests.get(url)
             response.raise_for_status()  # Verificar que la solicitud fue exitosa
 
+            history = response.history
+
             # Parsear el contenido de la página
             soup = BeautifulSoup(response.text, "html.parser")
 
@@ -41,13 +43,22 @@ class Scrapper_Node(Worker_Node):
                     structured_content = str(soup)  # Por defecto, devolver HTML
 
             # Extraer todos los enlaces de la página
-            links = []
+            links = set()
             for link in soup.find_all("a", href=True):
                 # Asegurar que los enlaces sean completos (absolutos)
                 full_link = urljoin(url, link["href"])
-                links.append(full_link)
+                links.add(full_link)
 
-            return jsonify({"content": structured_content, "links": links}), 200
+            return (
+                jsonify(
+                    {
+                        "content": structured_content,
+                        "links": list(links),
+                        "redirection": response.url if history else None,
+                    }
+                ),
+                200,
+            )
 
         except requests.exceptions.RequestException as e:
             log.error(f"Error al solicitar la URL: {e}")

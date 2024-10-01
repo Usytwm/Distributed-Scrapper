@@ -12,7 +12,7 @@ class NodeType(Enum):
     STORAGE = "storage"
 
 
-N_OF_BITS = 8
+N_OF_BITS = 160
 
 
 def generate_id(ip, port):

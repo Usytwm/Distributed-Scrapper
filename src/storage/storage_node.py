@@ -11,9 +11,20 @@ class StorageNode(Worker_Node):
         @self.app.route("/set", methods=["POST"])
         def set():
             data = request.get_json(force=True)
-            key, value = data.get("key"), data.get("value")
+            key, value, redirection = (
+                data.get("key"),
+                data.get("value"),
+                data.get("redirection"),
+            )
             response = self.set(key, value)
-            return jsonify(response), 200
+            redirectiron_response = (
+                self.set(redirection, value) if redirection else None
+            )
+            combined_response = {
+                "status": "OK",
+            }
+
+            return jsonify(combined_response), 200
 
         @self.app.route("/get", methods=["POST"])
         def get():
