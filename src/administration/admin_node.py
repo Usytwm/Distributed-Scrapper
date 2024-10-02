@@ -115,6 +115,15 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                 return jsonify({"status": "ERROR"}), 500
             return jsonify({"status": "OK"}), 200
 
+        @self.app.route("/get_url", methods=["POST"])
+        def get_url():
+            data = request.get_json(force=True)
+            url = data.get("url")
+            response = self.get_url(url)
+            if response is None:
+                return jsonify({"status": "ERROR"}), 500
+            return jsonify({"status": "OK", "value": response}), 200
+
     def welcome(self, entry_points):
         self.entry_points = entry_points
         return {"status": "OK"}
@@ -136,6 +145,18 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         entry_points = [self.node_data.to_json()]
         target_role = self.role
 
+        if role == "client":
+            closest = self.bootstrappable_k_closest()
+            # closest = [self.node_data]
+            self.call_rpc(
+                f"{ip}:{port}",
+                "welcome",
+                {
+                    "role": role,
+                    "entry points": [entry_point.to_json() for entry_point in closest],
+                },
+            )
+            return
         # Si el rol es diferente, y está vacío, entonces enviar la respuesta
         if self.role != role and self.is_empty(role):
             self.call_rpc(
@@ -153,6 +174,15 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
     def push_url(self, url):
         return self.push("urls", (url, 0))
+
+    def get_url(self, url):
+        length_storage = self.get_length_queue("storage")
+        storage, _, _ = self.select("storage", length_storage)
+        if storage is None:
+            return None
+        response = self.call_rpc(f"{storage.ip}:{storage.port}", "get", {"key": url})
+        if response and response.get("status") == "OK":
+            return response.get("value")
 
     def start_leader(self):
         # Este nodo se convierte en el líder y comienza el ciclo

@@ -72,33 +72,37 @@ def main():
     storage_node_3 = StorageNode(host="127.0.0.1", port=10003)
     storage_node_3.listen()
     storage_node_3.start()
+    log.critical(
+        "==============================================================All nodes started=============================================================="
+    )
 
-    data = {
-        "url": "https://example.com",
-    }
-    response = requests.post("http://127.0.0.1:8002/push_url", json=data)
 
-    queries = [
-        "https://example.com",
-        "https://www.iana.org/domains/example",
-        "https://www.iana.org/",
-        "https://www.iana.org/about",
-        # "https://www.iana.org/help/example-domains",
-    ]
-    answers = []
-    while True:
-        time.sleep(3)
-        for url in queries[len(answers) :]:
-            answer = storage_node_2.get(url)
-            if not answer:
-                break
-            answers.append(answer)
-        if len(answers) == len(queries):
-            break
+#     data = {
+#         "url": "https://example.com",
+#     }
+#     response = requests.post("http://127.0.0.1:8002/push_url", json=data)
 
-    x = storage_node_3.get("https://example.com")
-    y = storage_node_1.get("https://www.iana.org/domains/example")
-    b = storage_node_0.get("http://www.iana.org/help/example-domains")
+#     queries = [
+#         "https://example.com",
+#         "https://www.iana.org/domains/example",
+#         "https://www.iana.org/",
+#         "https://www.iana.org/about",
+#         # "https://www.iana.org/help/example-domains",
+#     ]
+#     answers = []
+#     while True:
+#         time.sleep(3)
+#         for url in queries[len(answers) :]:
+#             answer = storage_node_2.get(url)
+#             if not answer:
+#                 break
+#             answers.append(answer)
+#         if len(answers) == len(queries):
+#             break
+
+#     x = storage_node_3.get("https://example.com")
+#     y = storage_node_1.get("https://www.iana.org/domains/example")
+#     b = storage_node_0.get("http://www.iana.org/help/example-domains")
 
 
 if __name__ == "__main__":
