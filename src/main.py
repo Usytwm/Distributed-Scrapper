@@ -49,72 +49,17 @@ def kill_processes_on_port(port):
         print(f"No se encontraron procesos en el puerto {port}.")
 
 
-def load_config():
-    config_path = Path(__file__).resolve().parents[0] / "config.json"
-    print("nsm", config_path)
-    # Cargar archivo de configuración JSON con nodos bootstrap
-    with open(config_path, "r") as config_file:
-        return json.load(config_file)
-
-
-def start_node(node_type, ip, port, bootstrap_nodes=None):
-    bootstrap_nodes = bootstrap_nodes or []
-
+def start_node(node_type, ip, port):
     if node_type == NodeType.ADMIN:
         node = Admin_Node(ip=ip, port=port)
-        node.listen()
-        if bootstrap_nodes:
-            # Conectar a nodos bootstrap
-            node.register(bootstrap_nodes, NodeType.ADMIN.value)
-            # node.bootstrap(bootstrap_nodes)
-        else:
-            # Nodo bootstrap
-            node.start_leader()
-            node.register([], NodeType.ADMIN.value)
-        # log.info(f"Levantando nodo Admin en {ip}:{port}")
-        return node
-
     elif node_type == NodeType.SCRAPPER:
         node = Scrapper_Node(host=ip, port=port)
-        node.listen()
-        if bootstrap_nodes:
-            node.register(bootstrap_nodes, NodeType.SCRAPPER.value)
-        else:
-            config = load_config()
-            server_register = KademliaNodeData(
-                ip=config["bootstrap"]["admin"]["ip"],
-                port=config["bootstrap"]["admin"]["port"],
-            )
-            # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-            node.push("entry points", server_register.to_json())
-            node.set(
-                f"entry_point_element_{server_register.id}", server_register.to_json()
-            )
-            node.register([], NodeType.SCRAPPER.value)
-            # log.info("No hay nodos bootstrap para Scrapper, este es el nodo bootstrap.")
-        # log.info(f"Levantando nodo Scrapper en {ip}:{port}")
-        return node
-
     elif node_type == NodeType.STORAGE:
         node = StorageNode(host=ip, port=port)
-        node.listen()
-        if bootstrap_nodes:
-            node.register(bootstrap_nodes, NodeType.STORAGE.value)
-        else:
-            # log.info("No hay nodos bootstrap para Storage, este es el nodo bootstrap.")
-            config = load_config()
-            server_register = KademliaNodeData(
-                ip=config["bootstrap"]["admin"]["ip"],
-                port=config["bootstrap"]["admin"]["port"],
-            )
-            # Si no hay nodos bootstrap, este nodo es el bootstrap inicial de la red
-            node.push("entry points", server_register.to_json())
-            node.set(
-                f"entry_point_element_{server_register.id}", server_register.to_json()
-            )
-            node.register([], NodeType.STORAGE.value)
-        # log.info(f"Levantando nodo Storage en {ip}:{port}")
-        return node
+
+    node.listen()
+    node.start()
+    return node
 
 
 def main():
@@ -122,6 +67,7 @@ def main():
     parser = argparse.ArgumentParser(description="Levanta un nodo en la red")
 
     parser.add_argument(
+        "-t",
         "--type",
         choices=[role.value for role in NodeType],
         required=True,
@@ -136,28 +82,14 @@ def main():
         help="Dirección IP del nodo",
     )
     parser.add_argument("-p", "--port", type=int, required=True, help="Puerto del nodo")
-    parser.add_argument(
-        "-b",
-        "--bootstrap",
-        help="Nodos para hacer bootstrap en formato ip:port",
-        nargs="+",
-    )
 
     # Parsear los argumentos de la línea de comandos
     args = parser.parse_args()
     node_type = NodeType(args.type)
 
-    bootstrap_nodes = []
-
-    if args.bootstrap:
-        # Parsear los nodos bootstrap
-        for node in args.bootstrap:
-            ip, port = node.split(":")
-            bootstrap_nodes.append(KademliaNodeData(ip=ip, port=int(port)))
-
     try:
         # Levantar el nodo según el tipo seleccionado
-        node = start_node(node_type, args.ip, args.port, bootstrap_nodes)
+        node = start_node(node_type, args.ip, args.port)
 
     except KeyboardInterrupt:
         # Capturar Ctrl+C y manejar la salida
