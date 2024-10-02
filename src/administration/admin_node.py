@@ -3,11 +3,12 @@ import threading
 import time
 from typing import List
 from flask import Flask, request, jsonify
-from threading import Thread
+from threading import Thread, Lock
 from src.kademlia_network.kademlia_queue_node import KademliaQueueNode
 from src.Interfaces.NodeData import NodeData
 from src.Interfaces.IStorage import IStorage
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
+from src.utils.utils import NodeType
 
 log = logging.getLogger(__name__)
 
@@ -19,10 +20,10 @@ class Admin_Node(KademliaQueueNode):
         storage: IStorage = None,
         ip=None,
         port=None,
-        ksize: int = 2,
+        ksize: int = 20,
         alpha=3,
         max_chunk_size=2,
-        max_depth=1,
+        max_depth=2,
     ):
         super().__init__(node_id, storage, ip, port, ksize, alpha)
         self.max_chunk_size = max_chunk_size
@@ -69,11 +70,6 @@ class Admin_Node(KademliaQueueNode):
             self.start_leader()
             return jsonify({"status": "OK"}), 200
 
-        @self.app.route("/leader/stop", methods=["POST"])
-        def leader_stop():
-            self.stop_leader()
-            return jsonify({"status": "OK"}), 200
-
         @self.app.route("/leader_address", methods=["POST"])
         def leader_address():
             return jsonify({"status": "OK", "address": self.find_leader_address()})
@@ -112,7 +108,9 @@ class Admin_Node(KademliaQueueNode):
 
     def start_leader(self):
         # Este nodo se convierte en el líder y comienza el ciclo
-        log.info(f"Starting leader in {self.host}:{self.port}")
+        if self.is_leader:
+            return
+        log.warning(f"Starting leader in {self.host}:{self.port}")
         self.is_leader = True
         leader_thread = threading.Thread(target=self.leader_run)
         leader_thread.start()
@@ -127,7 +125,7 @@ class Admin_Node(KademliaQueueNode):
         data = {"role": role, "node": node.to_json()}
         response = self.call_rpc(address, "/leader/register", data)
         if response is None:
-            log.info(f"No response from node {address}")
+            log.debug(f"No response from node {address}")
             return None, None
         entry_points = self.bootstrappable_k_closest()
         if response.get("status") == "OK":
@@ -140,7 +138,6 @@ class Admin_Node(KademliaQueueNode):
         puede solicitarle su registro"""
         register = False
         if entry_points:
-            self.bootstrap(entry_points)
             for entry_point in entry_points:
                 address = f"{entry_point.ip}:{entry_point.port}"
                 data = {"role": role, "node": self.node_data.to_json()}
@@ -148,18 +145,111 @@ class Admin_Node(KademliaQueueNode):
                 if response and response.get("status") == "OK":
                     register = True
                     break
+            self.bootstrap(entry_points)
         else:
             register = self.push(role, self.node_data.to_json())
 
         return register
 
     def leader_register(self, role, node: KademliaNodeData):
-        self.push(role, node.to_json())
+        ok = self.push(role, node.to_json())
+        if role == NodeType.ADMIN.value and ok and self.id > node.id:
+            response = self.call_rpc(f"{node.ip}:{node.port}", "/leader/run", {})
+            if response.get("status") == "OK":
+                self.stop_leader()
 
     def leader_run(self):
+        proccess_left = 0
+        length_scrapper = 0
+        length_storage = 0
+        length_admin = 0
+        length_urls = 0
+
+        def update_lengths():
+            nonlocal proccess_left, length_scrapper, length_storage, length_admin, length_urls
+            if proccess_left == 0:
+                proccess_left = self.get_length_queue("in_process")
+            if length_scrapper == 0:
+                length_scrapper = self.get_length_queue("scrapper")
+            if length_storage == 0:
+                length_storage = self.get_length_queue("storage")
+            if length_admin == 0:
+                length_admin = self.get_length_queue("admin")
+            if length_urls == 0:
+                length_urls = self.get_length_queue("urls")
+
         while self.is_leader:
-            self.scrap_if_able()
-            self.update_in_process()
+            update_lengths()
+            if length_scrapper and length_urls:
+                length_admin, length_scrapper, length_storage, length_urls = self.scrap(
+                    length_admin, length_scrapper, length_storage, length_urls
+                )
+                length_urls -= 1
+            if proccess_left:
+                length_storage = self.update_in_process(length_storage)
+
+    def scrap(self, length_admin, length_scrapper, length_storage, length_urls):
+        admin, admin_address, length_admin = self.select("admin", length_admin)
+        if admin is None:
+            return 0, length_scrapper, length_storage, length_urls
+        response = self.pop("urls")
+        if response is None:
+            return length_admin, length_scrapper, length_storage, 0
+        else:
+            url, depth = response
+        if url is None:
+            return length_admin, length_scrapper, length_storage, 0
+        scrapper, _, length_scrapper = self.select(
+            "scrapper", length_scrapper, reinsert=False
+        )
+        if scrapper is None:
+            return length_admin, 0, length_storage, length_urls
+        storage, _, length_storage = self.select("storage", length_storage)
+        if storage is None:
+            return length_admin, length_scrapper, 0, length_urls
+        if all(x is not None for x in [scrapper, storage, admin]):
+            data = {
+                "url": url,
+                "scrapper": scrapper.to_json(),
+                "storage": storage.to_json(),
+                "depth": depth,
+            }
+            thread = Thread(
+                target=self.call_rpc, args=(admin_address, "follower/scrap", data)
+            )
+            thread.start()
+            self.push("in_process", (url, depth, admin.to_json()))
+        return length_admin, length_admin, length_storage, length_urls
+
+    def update_in_process(self, length_storage):
+        response = self.pop("in_process")
+        if response is None:
+            return 0
+        url, depth, admin = response
+        _, storage_address, length_storage = self.select("storage", length_storage)
+        data = {"key": url}
+        response = self.call_rpc(storage_address, "get", data)
+        value = self.call_ping(KademliaNodeData.from_json(admin))
+        if response is None or not value:
+            self.push("urls", (url, depth))
+        elif response.get("value") == None:
+            self.push("in_process", (url, depth, admin))
+        return length_storage
+
+    def select(self, role, length_role, reinsert=True):
+        while length_role:
+            response = self.pop(role)
+            if response is None:
+                return None, None, 0
+            node = KademliaNodeData.from_json(response)
+            address = f"{node.ip}:{node.port}"
+            response = self.call_rpc(address, "global_ping", {})
+            if response and response.get("status") == "OK":
+                if reinsert:
+                    self.push(role, node.to_json())
+                return node, address, length_role
+            length_role -= 1
+        return None, None, length_role
 
     def handle_scrap_results(
         self, urls: List[str], scrapper: KademliaNodeData, state: bool, depth: int
@@ -177,7 +267,7 @@ class Admin_Node(KademliaQueueNode):
         storage_address = f"{storage.ip}:{storage.port}"
         response = self.call_rpc(scrapper_address, "scrap", {"url": url})
         if response is None or response.get("error") is not None:
-            log.info(f"No response from node {scrapper_address}")
+            log.debug(f"No response from node {scrapper_address}")
             data = {
                 "url": [url],
                 "scrapper": scrapper.to_json(),
@@ -195,7 +285,7 @@ class Admin_Node(KademliaQueueNode):
                 },
             )
             if response_storage is None:
-                log.info(f"No response from node {scrapper_address}")
+                log.debugf(f"No response from node {scrapper_address}")
                 data = {
                     "url": [url],
                     "scrapper": scrapper.to_json(),
@@ -210,45 +300,3 @@ class Admin_Node(KademliaQueueNode):
                     "depth": depth,
                 }
         self.call_rpc(self.find_leader_address(), "leader/handle_scrap_result", data)
-
-    def scrap_if_able(self):
-        if not self.is_empty("scrapper") and not self.is_empty("urls"):
-            admin, admin_address = self.select("admin")
-            url, depth = self.pop("urls")
-            scrapper, _ = self.select("scrapper", reinsert=False)
-            storage, _ = self.select("storage")
-            if all(x is not None for x in [scrapper, storage, admin]):
-                data = {
-                    "url": url,
-                    "scrapper": scrapper.to_json(),
-                    "storage": storage.to_json(),
-                    "depth": depth,
-                }
-                thread = Thread(
-                    target=self.call_rpc, args=(admin_address, "follower/scrap", data)
-                )
-                thread.start()
-                self.push("in_process", (url, admin.to_json()))
-
-    def update_in_process(self):
-        if not self.is_empty("in_process"):
-            url, admin = self.pop("in_process")
-            _, storage_address = self.select("storage")
-            data = {"key": url}
-            response = self.call_rpc(storage_address, "get", data)
-            value = self.call_ping(KademliaNodeData.from_json(admin))
-            if response is None or not value:
-                self.push("urls", url)
-            elif response.get("value") == None:
-                self.push("in_process", (url, admin))
-
-    def select(self, role, reinsert=True):
-        while not self.is_empty(role):
-            node = KademliaNodeData.from_json(self.pop(role))
-            address = f"{node.ip}:{node.port}"
-            response = self.call_rpc(address, "global_ping", {})
-            if response and response.get("status") == "OK":
-                if reinsert:
-                    self.push(role, node.to_json())
-                return node, address
-        return None, None

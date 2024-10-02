@@ -10,7 +10,7 @@ from src.kademlia_network.kademlia_node import KademliaNode
 from src.utils.utils import N_OF_BITS, digest_to_int
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

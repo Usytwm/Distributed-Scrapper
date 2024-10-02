@@ -47,7 +47,10 @@ class Worker_Node(KademliaHeapNode):
             self.pop_as_leader("entry points")
             idx -= 1
         for entry_point in entry_points:
-            self.push("entry points", entry_point.to_json())
+            is_present = self.get(f"entry_point_element_{entry_point.id}")
+            if not is_present:
+                self.push("entry points", entry_point.to_json())
+                self.set(f"entry_point_element_{entry_point.id}", entry_point.to_json())
         return {"status": "OK"}
 
     def register(self, entry_points: List[KademliaNodeData], role: str):

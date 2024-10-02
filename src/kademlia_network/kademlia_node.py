@@ -31,7 +31,7 @@ class KademliaNode:
         storage: IStorage = None,
         ip=None,
         port=None,
-        ksize: int = 2,
+        ksize: int = 20,
         alpha=3,
     ):
         self.storage = storage or Storage()
@@ -47,14 +47,14 @@ class KademliaNode:
 
     def listen(self):
         def run_app():
-            self.app.run(host=self.host, port=self.port, threaded=True)
+            self.app.run(host=self.host, port=self.port, threaded=True, debug=False)
 
         thread = Thread(target=run_app)
         thread.start()
 
     def stop(self, save_file="data\\node_state.pkl"):
         """Detiene el servidor y guarda el estado"""
-        log.info("Deteniendo el servidor y guardando el estado...")
+        log.debug("Deteniendo el servidor y guardando el estado...")
         self.save_state(save_file)
         # Enviar señal para detener el servidor Flask
         os.kill(os.getpid(), signal.SIGINT)
@@ -109,7 +109,7 @@ class KademliaNode:
         return {"status": "OK", "value": value}
 
     def find_node(self, node: KademliaNodeData, key):
-        log.info("finding neighbors of %i in local table", key)
+        log.debug("finding neighbors of %i in local table", key)
         self.welcome_if_new(node)
         closest_nodes = [node.to_json() for node in self.router.k_closest_to(key)]
         return {"status": "OK", "nodes": closest_nodes}
@@ -121,7 +121,7 @@ class KademliaNode:
             address, "ping", {"sender_node_data": self.node_data.to_json()}
         )
         if response is None:
-            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.debug(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
 
         return response.get("status") == "OK"
@@ -135,7 +135,7 @@ class KademliaNode:
             {"sender_node_data": self.node_data.to_json(), "key": key, "value": value},
         )
         if response is None:
-            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.debug(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
 
         return response.get("status") == "OK"
@@ -149,7 +149,7 @@ class KademliaNode:
             {"sender_node_data": self.node_data.to_json(), "key": key},
         )
         if response is None:
-            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.debug(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return (-1, False)
         return (
             (response.get("value"), True)
@@ -166,7 +166,7 @@ class KademliaNode:
             {"sender_node_data": self.node_data.to_json(), "key": key},
         )
         if response is None:
-            log.info(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
+            log.debug(f"No response from node {node_to_ask.ip}:{node_to_ask.port}")
             return False
         return [KademliaNodeData.from_json(node) for node in response.get("nodes")]
 
@@ -177,13 +177,13 @@ class KademliaNode:
             response.raise_for_status()
             return response.json()
         except requests.Timeout:
-            log.info(f"Timeout occurred when calling {url}")
+            log.debug(f"Timeout occurred when calling {url}")
             return None
         except requests.ConnectionError as e:
-            log.info(f"Connection refused or network error when calling {url}: {e}")
+            log.debug(f"Connection refused or network error when calling {url}: {e}")
             return None
         except requests.RequestException as e:
-            log.info(f"RequestException occurred when calling {url}: {e}")
+            log.debug(f"RequestException occurred when calling {url}: {e}")
             return None
 
     def welcome_if_new(self, node: KademliaNodeData):
@@ -204,10 +204,10 @@ class KademliaNode:
                 self.call_store(node, key, value)
         self.router.add(node)
 
-    def lookup(self, id):
+    def lookup(self, id) -> List[KademliaNodeData]:
         """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
 
-        log.info(f"Initiating lookup for key {id}")
+        log.debug(f"Initiating lookup for key {id}")
         node = KademliaNodeData(id=id)
 
         # Inicializar el conjunto de nodos más cercanos a partir de la tabla de enrutamiento
@@ -275,7 +275,7 @@ class KademliaNode:
 
     def set(self, key, value):
         """Almacena un valor en la red"""
-        log.info(f"Setting '{key}' = '{value}' on network")
+        log.debug(f"Setting '{key}' = '{value}' on network")
         dkey = digest_to_int(key, num_bits=N_OF_BITS)
         closest = self.lookup(dkey)
         threads = []
@@ -291,7 +291,7 @@ class KademliaNode:
 
     def get(self, key):
         """Busca un valor en la red"""
-        log.info(f"Looking up key {key}")
+        log.debug(f"Looking up key {key}")
         dkey = digest_to_int(key, num_bits=N_OF_BITS)
         closest = self.lookup(dkey)
         results = []
@@ -330,7 +330,7 @@ class KademliaNode:
 
     def save_state(self, fname):
         """Guarda el estado del nodo en un archivo"""
-        log.info(f"Saving state to {fname}")
+        log.debug(f"Saving state to {fname}")
         # Obtener la ruta del archivo actual y agregar el subdirectorio/nombre de archivo
         base_path = os.path.dirname(os.path.abspath(__file__))
         fname = os.path.join(base_path, fname)
@@ -355,7 +355,7 @@ class KademliaNode:
     @classmethod
     def load_state(cls, fname, port, interface="0.0.0.0"):
         """Carga el estado del nodo desde un archivo"""
-        log.info(f"Loading state from {fname}")
+        log.debug(f"Loading state from {fname}")
         with open(fname, "rb") as f:
             data = pickle.load(f)
 

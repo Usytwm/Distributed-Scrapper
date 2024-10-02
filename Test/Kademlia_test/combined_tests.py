@@ -14,7 +14,7 @@ from src.kademlia_network.kademlia_node import KademliaNode
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

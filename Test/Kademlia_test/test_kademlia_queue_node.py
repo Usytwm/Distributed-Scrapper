@@ -14,7 +14,7 @@ from src.kademlia_network.kademlia_queue_node import KademliaQueueNode
 from src.kademlia_network.storage import Storage
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

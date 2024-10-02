@@ -21,7 +21,6 @@ docker run -d --name admin_node -p 8000:8000 mi-imagen:latest --type admin --ip 
 python src/main.py --type admin -i 127.0.0.1 -p 8001 --bootstrap 127.0.0.1:8000
 ```
 
-
 ## Nodo Bootstrap scrapper
 
 ```bash
@@ -47,3 +46,9 @@ python src/main.py --type storage -i 127.0.0.1 -p 10001 --bootstrap 127.0.0.1:10
 ```
 
 <!-- python src/main.py --type storage -i 127.0.0.1 -p 10001 --bootstrap 127.0.0.1:8000 -->
+
+make run TYPE=admin IP=127.0.0.1 PORT=8000
+make run TYPE=admin IP=127.0.0.1 PORT=8001 BOOTSTRAP="--bootstrap 127.0.0.1:8000"
+
+make run-docker TYPE=admin PORT=8000
+make run-docker TYPE=admin PORT=8010 BOOTSTRAP="--bootstrap 127.0.0.1:8000"

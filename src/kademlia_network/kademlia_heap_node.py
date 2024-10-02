@@ -18,7 +18,7 @@ class KademliaHeapNode(KademliaListNode):
         storage: IStorage = None,
         ip=None,
         port=None,
-        ksize: int = 2,
+        ksize: int = 20,
         alpha=3,
         max_chunk_size=2,
     ):
@@ -58,7 +58,7 @@ class KademliaHeapNode(KademliaListNode):
         data = {"heap": heap}
         response = self.call_rpc(address, "/leader/init_heap", data)
         if response is None:
-            log.info(f"No response from node {address}")
+            log.debug(f"No response from node {address}")
             return False
         return response.get("status") == "OK"
 
@@ -70,6 +70,6 @@ class KademliaHeapNode(KademliaListNode):
         data = {"heap": heap}
         response = self.call_rpc(address, "/leader/pop", data)
         if response is None:
-            log.info(f"No response from node {address}")
+            log.debug(f"No response from node {address}")
             return None
         return response.get("value")

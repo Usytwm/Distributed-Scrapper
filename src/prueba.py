@@ -17,8 +17,9 @@ from src.scrapper.scrapper_node import Scrapper_Node
 from src.storage.storage_node import StorageNode
 from src.utils.utils import NodeType
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.CRITICAL)
 log = logging.getLogger(__name__)
+log.setLevel(logging.CRITICAL)
 
 
 def kill_processes_on_port(port):

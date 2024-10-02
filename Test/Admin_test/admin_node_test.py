@@ -13,7 +13,7 @@ from src.administration.admin_node import Admin_Node
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.Interfaces.IStorage import IStorage
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

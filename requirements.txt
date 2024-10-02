@@ -1,3 +1,4 @@
 Flask
 requests
 sortedcontainers
+beautifulsoup4

@@ -1,7 +1,10 @@
+import logging
 from src.kademlia_network.kademlia_node import KademliaNode
 from src.Interfaces.IStorage import IStorage
 from flask import request, jsonify
 from typing import Tuple, List
+
+log = logging.getLogger(__name__)
 
 
 class KademliaListNode(KademliaNode):
@@ -11,7 +14,7 @@ class KademliaListNode(KademliaNode):
         storage: IStorage = None,
         ip=None,
         port=None,
-        ksize: int = 2,
+        ksize: int = 20,
         alpha=3,
         max_chunk_size=2,
     ):
@@ -54,6 +57,7 @@ class KademliaListNode(KademliaNode):
         self.set_length(list, length)
         if (length % self.max_chunk_size) == 0:
             self.set_chunk(list, chunk_idx + 1, [])
+        log.warning(f"Append value {value} to {list} from {self.node_data.to_json()}")
         return {"status": "OK"}
 
     def list_set_as_leader(self, list, idx, value):
@@ -132,4 +136,6 @@ class KademliaListNode(KademliaNode):
 
     def get_length(self, list):
         length = self.get(f"{list}_length")
+        if list == "urls":
+            log.critical(f"list: {list}  length: {length if length != False else 0}")
         return length if length != False else 0

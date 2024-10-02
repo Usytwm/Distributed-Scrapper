@@ -10,7 +10,7 @@ import logging
 from src.kademlia_network.kademlia_node import KademliaNode, distance_to
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

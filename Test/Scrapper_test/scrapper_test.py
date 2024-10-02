@@ -7,7 +7,7 @@ sys.path.append(str(path_to_root))
 
 from src.scrapper.scrapper_node import Scrapper_Node
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

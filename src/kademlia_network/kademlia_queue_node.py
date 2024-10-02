@@ -18,7 +18,7 @@ class KademliaQueueNode(KademliaListNode):
         storage: IStorage = None,
         ip=None,
         port=None,
-        ksize: int = 2,
+        ksize: int = 20,
         alpha=3,
         max_chunk_size=2,
     ):
@@ -51,6 +51,7 @@ class KademliaQueueNode(KademliaListNode):
         if first_idx == self.get_length(queue):
             raise EmptyQueueException(f"{queue} is empty")
         value = self.list_get(queue, first_idx)
+        log.warning(f"Pop value {value} from {queue}")
         self.set_first_idx(queue, first_idx + 1)
         return {"status": "OK", "value": value}
 
@@ -59,11 +60,13 @@ class KademliaQueueNode(KademliaListNode):
         data = {"queue": queue}
         response = self.call_rpc(address, "/leader/init_queue", data)
         if response is None:
-            log.info(f"No response from node {address}")
+            log.debug(f"No response from node {address}")
             return False
         return response.get("status") == "OK"
 
     def push(self, queue, value):
+        if queue == "urls" and type(value) == str:
+            "Hola"
         return self.append(queue, value)
 
     def pop(self, queue):
@@ -71,12 +74,14 @@ class KademliaQueueNode(KademliaListNode):
         data = {"queue": queue}
         response = self.call_rpc(address, "/leader/pop", data)
         if response is None:
-            log.info(f"No response from node {address}")
+            log.debug(f"No response from node {address}")
             return None
         return response.get("value")
 
     def get_first_idx(self, queue):
         first = self.get(f"{queue}_first")
+        if queue == "urls":
+            log.critical(f"Get first idx {first if first != False else 0} from {queue}")
         return first if first != False else 0
 
     def set_first_idx(self, queue, idx):
@@ -84,3 +89,6 @@ class KademliaQueueNode(KademliaListNode):
 
     def is_empty(self, queue):
         return self.get_length(queue) == self.get_first_idx(queue)
+
+    def get_length_queue(self, queue):
+        return self.get_length(queue) - self.get_first_idx(queue)

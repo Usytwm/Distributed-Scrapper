@@ -11,7 +11,7 @@ from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.scrapper.scrapper_node import Scrapper_Node
 from src.storage.storage_node import StorageNode
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 # Inicialización de nodos de administrador
