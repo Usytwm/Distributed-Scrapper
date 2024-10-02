@@ -6,13 +6,14 @@ from flask import jsonify, request
 import requests
 
 from src.Interfaces.WorkerNode import Worker_Node
+from src.utils.utils import NodeType
 
 log = logging.getLogger(__name__)
 
 
 class Scrapper_Node(Worker_Node):
     def __init__(self, host, port):
-        super().__init__(host=host, port=port)
+        super().__init__(host=host, port=port, role=NodeType.SCRAPPER.value)
         self.configure_scrapper_endpoints()
 
     def configure_scrapper_endpoints(self):

@@ -7,13 +7,14 @@ from threading import Thread, Lock
 from src.kademlia_network.kademlia_queue_node import KademliaQueueNode
 from src.Interfaces.NodeData import NodeData
 from src.Interfaces.IStorage import IStorage
+from src.Interfaces.AutoDiscoveredNode import DiscovererNode
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
 from src.utils.utils import NodeType
 
 log = logging.getLogger(__name__)
 
 
-class Admin_Node(KademliaQueueNode):
+class Admin_Node(KademliaQueueNode, DiscovererNode):
     def __init__(
         self,
         node_id=None,
@@ -25,13 +26,24 @@ class Admin_Node(KademliaQueueNode):
         max_chunk_size=2,
         max_depth=2,
     ):
-        super().__init__(node_id, storage, ip, port, ksize, alpha)
+        DiscovererNode.__init__(self, ip, port, NodeType.ADMIN.value)
+        KademliaQueueNode.__init__(self, node_id, storage, ip, port, ksize, alpha)
         self.max_chunk_size = max_chunk_size
         self.configure_admin_endpoints()
         self.is_leader = False
         self.max_depth = max_depth
+        # self.role = NodeType.ADMIN
 
     def configure_admin_endpoints(self):
+        @self.app.route("/welcome", methods=["POST"])
+        def welcome():
+            data = request.get_json(force=True)
+            entry_points = [
+                KademliaNodeData.from_json(node) for node in data.get("entry points")
+            ]
+            response = self.welcome(entry_points)
+            return jsonify(response), 200
+
         @self.app.route("/global_ping", methods=["POST"])
         def global_ping():
             return jsonify({"status": "OK"}), 200
@@ -102,6 +114,56 @@ class Admin_Node(KademliaQueueNode):
             if response is None:
                 return jsonify({"status": "ERROR"}), 500
             return jsonify({"status": "OK"}), 200
+
+    def welcome(self, entry_points):
+        self.entry_points = entry_points
+        return {"status": "OK"}
+
+    def start(self):
+        self.broadcast()
+        start_time = time.time()
+        while time.time() - start_time < self.timeout_for_welcome_answers:
+            if self.entry_points is not None:
+                self.register(self.entry_points, self.role)
+                return
+        self.start_leader()
+        self.register([], NodeType.ADMIN.value)
+        thread = Thread(target=self.listen_to_broadcast)
+        thread.start()
+
+    def respond_to_broadcast(self, addr, role):
+        ip, port = addr
+        entry_points = [self.node_data.to_json()]
+        target_role = self.role
+
+        # Si el rol es diferente, y está vacío, entonces enviar la respuesta
+        if self.role != role and self.is_empty(role):
+            self.call_rpc(
+                f"{ip}:{port}",
+                "welcome",
+                {"entry points": entry_points, "role": target_role},
+            )
+        # Si el rol es el mismo admin, enviar la respuesta directamente
+        elif self.role == role:
+            self.call_rpc(
+                f"{ip}:{port}",
+                "welcome",
+                {"entry points": entry_points, "role": target_role},
+            )
+
+        # if self.role != role:
+        #     if self.is_empty(role):
+        #         self.call_rpc(
+        #             f"{ip}:{port}",
+        #             "welcome",
+        #             {"entry points": [self.node_data.to_json()], "role": self.role},
+        #         )
+        # else:
+        #     self.call_rpc(
+        #         f"{ip}:{port}",
+        #         "welcome",
+        #         {"entry points": [self.node_data.to_json()], "role": self.role},
+        #     )
 
     def push_url(self, url):
         return self.push("urls", (url, 0))

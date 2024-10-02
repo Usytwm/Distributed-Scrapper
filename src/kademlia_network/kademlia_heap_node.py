@@ -38,7 +38,6 @@ class KademliaHeapNode(KademliaListNode):
         def pop_as_leader():
             data = request.get_json(force=True)
             heap = data.get("heap")
-            #!controlar excepvcion
             response = self.pop_as_leader(heap)
             return jsonify(response), 200
 
@@ -48,7 +47,7 @@ class KademliaHeapNode(KademliaListNode):
     def pop_as_leader(self, heap):
         length = self.get_length(heap)
         if length == 0:
-            raise EmptyHeapException(f"{heap} is empty")
+            raise {"status": "OK", "value": None}
         value = self.list_get(heap, length)
         self.set_length(heap, length - 1)
         return {"status": "OK", "value": value}

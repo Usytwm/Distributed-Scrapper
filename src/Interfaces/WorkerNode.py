@@ -1,19 +1,35 @@
 import logging
+from threading import Thread
+import time
 from flask import request, jsonify
 from typing import List
 
 from src.kademlia_network.kademlia_heap_node import KademliaHeapNode
 from src.kademlia_network.kademlia_node_data import KademliaNodeData
+from src.Interfaces.AutoDiscoveredNode import DiscovererNode
+from src.utils.utils import NodeType
 
 log = logging.getLogger(__name__)
 
 
-class Worker_Node(KademliaHeapNode):
-    def __init__(self, host, port):
-        super().__init__(ip=host, port=port)
+class Worker_Node(KademliaHeapNode, DiscovererNode):
+    def __init__(self, host, port, role):
+        KademliaHeapNode.__init__(self, ip=host, port=port)
+        DiscovererNode.__init__(self, ip=host, port=port, role=role)
         self.configure_worker_endpoints()
+        self.role = role
 
     def configure_worker_endpoints(self):
+        @self.app.route("/welcome", methods=["POST"])
+        def welcome():
+            data = request.get_json(force=True)
+            entry_points = [
+                KademliaNodeData.from_json(node) for node in data.get("entry points")
+            ]
+            role = data.get("role")
+            response = self.welcome(entry_points, role)
+            return jsonify(response), 200
+
         @self.app.route("/global_ping", methods=["POST"])
         def global_ping():
             response = self.global_ping()
@@ -30,6 +46,32 @@ class Worker_Node(KademliaHeapNode):
                 entry_points, register_idx
             )
             return jsonify(response), 200
+
+    def welcome(self, entry_points: List[KademliaNodeData], role: str):
+        self.entry_points = entry_points
+        if role != self.role and role == NodeType.ADMIN.value:
+            self.push("entry points", entry_points[0].to_json())
+            self.set(
+                f"entry_point_element_{entry_points[0].id}", entry_points[0].to_json()
+            )
+            self.entry_points = []
+
+    def start(self):
+        self.broadcast()
+        while True:
+            if self.entry_points is not None:
+                self.register(self.entry_points, self.role)
+                break
+
+        thread = Thread(target=self.listen_to_broadcast)
+        thread.start()
+
+    def respond_to_broadcast(self, addr, role):
+        if role == self.role:
+            ip, port = addr
+            self.call_rpc(
+                f"{ip}:{port}", "welcome", {"entry points": [self.node_data.to_json()]}
+            )
 
     def global_ping(self):
         return {"status": "OK"}
