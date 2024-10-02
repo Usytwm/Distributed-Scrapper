@@ -13,6 +13,12 @@ from src.administration.admin_node import Admin_Node
 from src.scrapper.scrapper_node import Scrapper_Node
 from src.storage.storage_node import StorageNode
 
+# Desactivar logs de urllib3
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
+# Desactivar logs de werkzeug (Flask)
+logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
+
 logging.basicConfig(level=logging.CRITICAL)
 log = logging.getLogger(__name__)
 log.setLevel(logging.CRITICAL)

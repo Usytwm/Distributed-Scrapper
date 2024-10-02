@@ -48,13 +48,18 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
             return jsonify(response), 200
 
     def welcome(self, entry_points: List[KademliaNodeData], role: str):
-        self.entry_points = entry_points
+        v = False
         if role != self.role and role == NodeType.ADMIN.value:
-            self.push("entry points", entry_points[0].to_json())
+            original_entry_point = entry_points[0]
+            # self.entry_points = []
+            self.push("entry points", original_entry_point.to_json())
             self.set(
-                f"entry_point_element_{entry_points[0].id}", entry_points[0].to_json()
+                f"entry_point_element_{original_entry_point.id}",
+                original_entry_point.to_json(),
             )
-            self.entry_points = []
+            v = True
+
+        self.entry_points = entry_points if not v else []
 
     def start(self):
         self.broadcast()
@@ -70,7 +75,9 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         if role == self.role:
             ip, port = addr
             self.call_rpc(
-                f"{ip}:{port}", "welcome", {"entry points": [self.node_data.to_json()]}
+                f"{ip}:{port}",
+                "welcome",
+                {"entry points": [self.node_data.to_json()], "role": self.role},
             )
 
     def global_ping(self):

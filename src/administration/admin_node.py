@@ -151,20 +151,6 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                 {"entry points": entry_points, "role": target_role},
             )
 
-        # if self.role != role:
-        #     if self.is_empty(role):
-        #         self.call_rpc(
-        #             f"{ip}:{port}",
-        #             "welcome",
-        #             {"entry points": [self.node_data.to_json()], "role": self.role},
-        #         )
-        # else:
-        #     self.call_rpc(
-        #         f"{ip}:{port}",
-        #         "welcome",
-        #         {"entry points": [self.node_data.to_json()], "role": self.role},
-        #     )
-
     def push_url(self, url):
         return self.push("urls", (url, 0))
 
