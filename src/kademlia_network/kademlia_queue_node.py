@@ -38,7 +38,6 @@ class KademliaQueueNode(KademliaListNode):
         def pop_as_leader():
             data = request.get_json(force=True)
             queue = data.get("queue")
-            #!controlar excepvcion
             response = self.pop_as_leader(queue)
             return jsonify(response), 200
 
@@ -49,7 +48,7 @@ class KademliaQueueNode(KademliaListNode):
     def pop_as_leader(self, queue):
         first_idx = self.get_first_idx(queue)
         if first_idx == self.get_length(queue):
-            raise EmptyQueueException(f"{queue} is empty")
+            return {"status": "OK", "value": None}
         value = self.list_get(queue, first_idx)
         log.warning(f"Pop value {value} from {queue}")
         self.set_first_idx(queue, first_idx + 1)

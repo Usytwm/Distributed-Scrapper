@@ -47,7 +47,7 @@ class KademliaHeapNode(KademliaListNode):
     def pop_as_leader(self, heap):
         length = self.get_length(heap)
         if length == 0:
-            raise {"status": "OK", "value": None}
+            return {"status": "OK", "value": None}
         value = self.list_get(heap, length)
         self.set_length(heap, length - 1)
         return {"status": "OK", "value": value}

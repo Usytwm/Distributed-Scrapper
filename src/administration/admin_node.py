@@ -24,7 +24,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         ksize: int = 20,
         alpha=3,
         max_chunk_size=2,
-        max_depth=2,
+        max_depth=1,
     ):
         DiscovererNode.__init__(self, ip, port, NodeType.ADMIN.value)
         KademliaQueueNode.__init__(self, node_id, storage, ip, port, ksize, alpha)
@@ -147,7 +147,6 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
         if role == "client":
             closest = self.bootstrappable_k_closest()
-            # closest = [self.node_data]
             self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
