@@ -38,7 +38,7 @@ Una red distribuida de scraping web que utiliza nodos especializados para la rec
    ### Scrapper
 
    ```bash
-   python src/main.py -t scraper -p 9000
+   python src/main.py -t scrapper -p 9000
    ```
 
    ### Storage

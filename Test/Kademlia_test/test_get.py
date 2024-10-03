@@ -10,23 +10,46 @@ import logging
 from src.kademlia_network.kademlia_node import KademliaNode
 from src.utils.utils import N_OF_BITS, digest_to_int
 
+# Desactivar logs de urllib3
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
-# logging.basicConfig(level=logging.DEBUG)
+# Desactivar logs de werkzeug (Flask)
+logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
+
+
+logging.basicConfig(level=logging.CRITICAL)
 log = logging.getLogger(__name__)
+log.setLevel(logging.CRITICAL)
 
 
 def test_get():
     # Configuración de la red
-    node1 = KademliaNode(node_id=1, ip="127.0.0.1", port=8001, ksize=2)
+    node1 = KademliaNode(
+        node_id=1,
+        ip="127.0.0.1",
+        port=8001,
+    )
     node1.listen()
 
-    node2 = KademliaNode(node_id=2, ip="127.0.0.1", port=8002, ksize=2)
+    node2 = KademliaNode(
+        node_id=2,
+        ip="127.0.0.1",
+        port=8002,
+    )
     node2.listen()
 
-    node3 = KademliaNode(node_id=3, ip="127.0.0.1", port=8003, ksize=2)
+    node3 = KademliaNode(
+        node_id=3,
+        ip="127.0.0.1",
+        port=8003,
+    )
     node3.listen()
 
-    node4 = KademliaNode(node_id=4, ip="127.0.0.1", port=8004, ksize=2)
+    node4 = KademliaNode(
+        node_id=4,
+        ip="127.0.0.1",
+        port=8004,
+    )
     node4.listen()
 
     node1.bootstrap([node2.node_data, node3.node_data, node4.node_data])
@@ -58,9 +81,7 @@ def test_get():
     ), f"El valor complejo recuperado no coincide: {retrieved_value} != {complex_value}"
 
     # Caso de prueba 3: Recuperar un valor duplicado
-    retrieved_value = node4.get(
-        duplicate_key
-    )  #! Se ejecuta indefinidamente haciendo llamadas
+    retrieved_value = node4.get(duplicate_key)
     assert (
         retrieved_value == value1
     ), f"El valor duplicado recuperado no coincide: {retrieved_value} != {value1}"
@@ -80,6 +101,14 @@ def test_get():
     assert (
         retrieved_value == value
     ), f"El valor recuperado no coincide cuando un nodo falla: {retrieved_value} != {value}"
+
+    node5 = KademliaNode(
+        node_id=5,
+        ip="127.0.0.1",
+        port=8005,
+    )
+    node5.listen()
+    node5.bootstrap([node1.node_data])
 
     log.info("Todos los casos de prueba para get pasaron correctamente.")
 

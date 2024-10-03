@@ -201,6 +201,7 @@ class KademliaNode:
                 first = distance_to(neighbors[0].id, key)
                 this_closest = distance_to(self.id, key) < first
             if not neighbors or (new_node_close and this_closest):
+                log.critical(f"save {key}:{value} to {node} from {self.node_data}")
                 self.call_store(node, key, value)
         self.router.add(node)
 
@@ -272,6 +273,7 @@ class KademliaNode:
             thread.join()
         self.lookup(self.id)
         self.router.poblate()
+        # self.update_storage()
 
     def set(self, key, value):
         """Almacena un valor en la red"""
