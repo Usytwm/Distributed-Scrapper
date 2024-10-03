@@ -20,9 +20,36 @@ Una red distribuida de scraping web que utiliza nodos especializados para la rec
    ```bash
    python src/main.py -t [scraper|storage|admin] -i [IP] -p [PUERTO]
    ```
+
    o
+
    ```bash
    python src/main.py --type [scraper|storage|admin] --ip [IP] --port [PUERTO]
+   ```
+
+   por ejemplo si queremos levantar un nodo de cualquier tipo basta solo con esto
+
+   ### Admin
+
+   ```bash
+   python src/main.py -t admin -p 8000
+   ```
+
+   ### Scrapper
+
+   ```bash
+   python src/main.py -t scraper -p 9000
+   ```
+
+   ### Scrapper
+
+   ```bash
+   python src/main.py -t storage -p 10000
+   ```
+
+   ### Cliente
+    ```bash
+   python src/client/client.py --port 11000
    ```
 
 3. Los nodos se comunicarán entre ellos para realizar el proceso de scraping, almacenamiento y balanceo de carga, siguiendo el esquema de roles de la red. El sistema se auto-configura y cada nodo emite un broadcast al unirse a la red.
