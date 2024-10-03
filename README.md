@@ -41,14 +41,15 @@ Una red distribuida de scraping web que utiliza nodos especializados para la rec
    python src/main.py -t scraper -p 9000
    ```
 
-   ### Scrapper
+   ### Storage
 
    ```bash
    python src/main.py -t storage -p 10000
    ```
 
    ### Cliente
-    ```bash
+
+   ```bash
    python src/client/client.py --port 11000
    ```
 

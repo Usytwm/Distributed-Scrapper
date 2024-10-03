@@ -78,7 +78,6 @@ def main():
         "--ip",
         type=str,
         default="127.0.0.1",
-        required=True,
         help="Dirección IP del nodo",
     )
     parser.add_argument("-p", "--port", type=int, required=True, help="Puerto del nodo")
