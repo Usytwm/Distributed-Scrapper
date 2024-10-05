@@ -63,6 +63,7 @@ def start_node(node_type, ip, port):
 
 
 def main():
+    print("Argumentos recibidos:", sys.argv)
     # Configurar argparse para recibir los parámetros por consola
     parser = argparse.ArgumentParser(description="Levanta un nodo en la red")
 
@@ -82,8 +83,13 @@ def main():
     )
     parser.add_argument("-p", "--port", type=int, required=True, help="Puerto del nodo")
 
-    # Parsear los argumentos de la línea de comandos
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+        print(f"Running {args.type} on port {args.port}")
+    except SystemExit as e:
+        print(f"Error: {e}, argumentos recibidos: {sys.argv}")
+        raise  # Esto permitirá que el programa continúe mostrando la excepción después de imprimir información adicional
+
     node_type = NodeType(args.type)
 
     try:

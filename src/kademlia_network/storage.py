@@ -19,9 +19,16 @@ class Storage(IStorage):
         self.cull()
 
     def cull(self):
-        # Elimina los elementos que han superado el TTL
-        for _, _ in self.iter_older_than(self.ttl):
-            self.data.popitem(last=False)
+        # # Elimina los elementos que han superado el TTL
+        # for _, _ in self.iter_older_than(self.ttl):
+        #     self.data.popitem(last=False)
+
+        # Crear una lista de las claves que están por eliminarse
+        keys_to_remove = [key for key, _ in self.iter_older_than(self.ttl)]
+
+        # Eliminar las claves de la lista en el diccionario original
+        for key in keys_to_remove:
+            self.data.pop(key, None)
 
     def get(self, key, default=None):
         # Devuelve un valor almacenado o un valor por defecto
@@ -43,7 +50,7 @@ class Storage(IStorage):
         # Itera sobre los elementos más antiguos que el tiempo especificado
         min_birthday = time.monotonic() - seconds_old
         zipped = self._triple_iter()
-        matches = takewhile(lambda r: min_birthday >= r[1], zipped)
+        matches = list(takewhile(lambda r: min_birthday >= r[1], zipped))
         return list(map(operator.itemgetter(0, 2), matches))
 
     def _triple_iter(self):
@@ -55,8 +62,8 @@ class Storage(IStorage):
 
     def __iter__(self):
         self.cull()
-        ikeys = self.data.keys()
-        ivalues = map(operator.itemgetter(1), self.data.values())
+        ikeys = list(self.data.keys())
+        ivalues = list(map(operator.itemgetter(1), self.data.values()))
         return zip(ikeys, ivalues)
 
     def clear(self):

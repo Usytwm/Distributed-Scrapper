@@ -109,7 +109,14 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         self.bootstrap(entry_points)
         idx = self.get_length("entry points") - 1
         while idx >= 0:
-            entry_point = KademliaNodeData.from_json(self.list_get("entry points", idx))
+            try:
+                entry_point = KademliaNodeData.from_json(
+                    self.list_get("entry points", idx)
+                )
+            except Exception as e:
+                log.error(f"Error al obtener el entry point: {e}")
+                idx -= 1
+                continue
             address = f"{entry_point.ip}:{entry_point.port}"
             data = {"role": role, "node": self.node_data.to_json()}
             response = self.call_rpc(address, "follower/register", data)

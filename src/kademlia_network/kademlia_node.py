@@ -191,19 +191,18 @@ class KademliaNode:
         if node.id in self.router or node.id == self.id:
             return
 
+        self.router.add(node)
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
-            # keynode_id = digest_to_int(key)
             neighbors = self.router.k_closest_to(key)
             if neighbors:
                 last = distance_to(neighbors[-1].id, key)
                 new_node_close = distance_to(node.id, key) < last
-                first = distance_to(neighbors[0].id, key)
-                this_closest = distance_to(self.id, key) < first
-            if not neighbors or (new_node_close and this_closest):
+                # first = distance_to(neighbors[0].id, key)
+                # this_closest = distance_to(self.id, key) < first
+            if not neighbors or new_node_close:
                 log.critical(f"save {key}:{value} to {node} from {self.node_data}")
                 self.call_store(node, key, value)
-        self.router.add(node)
 
     def lookup(self, id) -> List[KademliaNodeData]:
         """Realiza una búsqueda para encontrar los k nodos más cercanos a un ID"""
