@@ -195,11 +195,13 @@ class KademliaNode:
         log.info("never seen %s before, adding to router", node)
         for key, value in self.storage:
             neighbors = self.router.k_closest_to(key)
-            if neighbors:
+            if neighbors and len(neighbors) >= self.ksize:
                 last = distance_to(neighbors[-1].id, key)
                 new_node_close = distance_to(node.id, key) < last
                 # first = distance_to(neighbors[0].id, key)
                 # this_closest = distance_to(self.id, key) < first
+            else:
+                new_node_close = True
             if not neighbors or new_node_close:
                 log.critical(f"save {key}:{value} to {node} from {self.node_data}")
                 self.call_store(node, key, value)
@@ -254,8 +256,9 @@ class KademliaNode:
             del nearest[self.ksize :]
             if all(x.id in already_queried for _, x in nearest):
                 break
-
-        return [contact for _, contact in nearest]
+        retorno = [contact for _, contact in nearest]
+        # log.critical(f"Returning {len(retorno)} nodes => {retorno}")
+        return retorno
 
     def bootstrap(self, nodes: List[KademliaNodeData]):
         """Realiza el bootstrap del nodo utilizando las direcciones iniciales"""
@@ -294,6 +297,8 @@ class KademliaNode:
         """Busca un valor en la red"""
         log.debug(f"Looking up key {key}")
         dkey = digest_to_int(key, num_bits=N_OF_BITS)
+        if key == "entry points":
+            log.critical(f"key: {key} => dkey: {dkey}")
         closest = self.lookup(dkey)
         results = []
 

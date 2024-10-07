@@ -9,10 +9,11 @@ path_to_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(path_to_root))
 
 
+from src.utils.utils import kill_processes_on_port
 from src.administration.admin_node import Admin_Node
 from src.scrapper.scrapper_node import Scrapper_Node
 from src.storage.storage_node import StorageNode
-from src.main import kill_processes_on_port
+
 
 # Desactivar logs de urllib3
 logging.getLogger("urllib3").setLevel(logging.CRITICAL)

@@ -114,18 +114,3 @@ def hardcode_urls(
     for url in urls:
         admin_node.push("urls", (url, admin_node.max_depth))
         print(f"URL {url} añadida a la red con profundidad {admin_node.max_depth}")
-
-
-# # Ejemplo de URLs hardcodeadas
-# urls_to_scrap = [
-#     "https://www.example.com",
-#     "https://www.wikipedia.org",
-#     "https://www.python.org",
-#     "https://www.github.com",
-#     "https://www.stackoverflow.com",
-#     "https://www.reddit.com",
-#     "https://www.medium.com",
-#     "https://www.nytimes.com",
-#     "https://www.bbc.com",
-#     "https://www.cnn.com"
-# ]

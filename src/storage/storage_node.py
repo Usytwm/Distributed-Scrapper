@@ -4,8 +4,8 @@ from src.utils.utils import NodeType
 
 
 class StorageNode(Worker_Node):
-    def __init__(self, host, port):
-        super().__init__(host=host, port=port, role=NodeType.STORAGE.value)
+    def __init__(self, host, port, id=None):
+        super().__init__(id=id, host=host, port=port, role=NodeType.STORAGE.value)
         self.configure_storage_endpoint()
 
     def configure_storage_endpoint(self):

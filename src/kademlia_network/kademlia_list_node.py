@@ -136,6 +136,6 @@ class KademliaListNode(KademliaNode):
 
     def get_length(self, list):
         length = self.get(f"{list}_length")
-        if list == "urls":
-            log.critical(f"list: {list}  length: {length if length != False else 0}")
+        # if list == "entry points":
+        #     log.critical(f"list: {list}  length: {length if length != False else 0}")
         return length if length != False else 0

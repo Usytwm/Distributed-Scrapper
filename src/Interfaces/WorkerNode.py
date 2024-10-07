@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 
 class Worker_Node(KademliaHeapNode, DiscovererNode):
-    def __init__(self, host, port, role):
-        KademliaHeapNode.__init__(self, ip=host, port=port)
+    def __init__(self, host, port, role, id=None):
+        KademliaHeapNode.__init__(self, node_id=id, ip=host, port=port)
         DiscovererNode.__init__(self, ip=host, port=port, role=role)
         self.configure_worker_endpoints()
         self.role = role
@@ -51,7 +51,6 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         v = False
         if role != self.role and role == NodeType.ADMIN.value:
             original_entry_point = entry_points[0]
-            # self.entry_points = []
             self.push("entry points", original_entry_point.to_json())
             self.set(
                 f"entry_point_element_{original_entry_point.id}",
@@ -88,7 +87,7 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
     ):
         idx = self.get_length("entry points") - 1
         while idx > register_idx:
-            node = self.list_get(idx)
+            node = self.list_get("entry points", idx)
             address = f"{node.ip}:{node.port}"
             response = self.call_rpc(address, "global_ping", {})
             if response and response.get("status") == "OK":
@@ -108,6 +107,7 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         puede solicitarle su registro"""
         self.bootstrap(entry_points)
         idx = self.get_length("entry points") - 1
+        log.critical(f"Registering to {idx} entry points")
         while idx >= 0:
             try:
                 entry_point = KademliaNodeData.from_json(
@@ -119,6 +119,7 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
                 continue
             address = f"{entry_point.ip}:{entry_point.port}"
             data = {"role": role, "node": self.node_data.to_json()}
+            log.critical(f"Registering to {address}")
             response = self.call_rpc(address, "follower/register", data)
             if response and response.get("status") == "OK":
                 address = self.find_leader_address()

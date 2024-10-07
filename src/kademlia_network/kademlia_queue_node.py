@@ -64,8 +64,6 @@ class KademliaQueueNode(KademliaListNode):
         return response.get("status") == "OK"
 
     def push(self, queue, value):
-        if queue == "urls" and type(value) == str:
-            "Hola"
         return self.append(queue, value)
 
     def pop(self, queue):

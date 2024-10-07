@@ -230,6 +230,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
     def leader_register(self, role, node: KademliaNodeData):
         ok = self.push(role, node.to_json())
+        # log.critical(f"Registering {node} as {role} in {self.node_data}")
         if role == NodeType.ADMIN.value and ok and self.id > node.id:
             response = self.call_rpc(f"{node.ip}:{node.port}", "/leader/run", {})
             if response.get("status") == "OK":
