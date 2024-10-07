@@ -50,7 +50,7 @@ class KademliaQueueNode(KademliaListNode):
         if first_idx == self.get_length(queue):
             return {"status": "OK", "value": None}
         value = self.list_get(queue, first_idx)
-        log.warning(f"Pop value {value} from {queue}")
+        # log.warning(f"Pop value {value} from {queue}")
         self.set_first_idx(queue, first_idx + 1)
         return {"status": "OK", "value": value}
 

@@ -57,7 +57,7 @@ class KademliaListNode(KademliaNode):
         self.set_length(list, length)
         if (length % self.max_chunk_size) == 0:
             self.set_chunk(list, chunk_idx + 1, [])
-        log.warning(f"Append value {value} to {list} from {self.node_data.to_json()}")
+        # log.warning(f"Append value {value} to {list} from {self.node_data.to_json()}")
         return {"status": "OK"}
 
     def list_set_as_leader(self, list, idx, value):
