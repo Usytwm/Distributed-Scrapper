@@ -87,7 +87,12 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
     ):
         idx = self.get_length("entry points") - 1
         while idx > register_idx:
-            node = self.list_get("entry points", idx)
+            try:
+                node = KademliaNodeData.from_json(self.list_get("entry points", idx))
+            except Exception as e:
+                log.error(f"Error al obtener el entry point: {e}")
+                idx -= 1
+                continue
             address = f"{node.ip}:{node.port}"
             response = self.call_rpc(address, "global_ping", {})
             if response and response.get("status") == "OK":

@@ -4,52 +4,104 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Client Node Interface</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
       body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
+        font-family: "Roboto", sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        max-width: 500px;
+        width: 100%;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 30px;
+        text-align: center;
+        color: #333;
+      }
+      h3 {
+        font-size: 18px;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        color: #555;
       }
       input {
-        margin: 10px 0;
-        padding: 8px;
-        width: 300px;
+        margin-bottom: 15px;
+        padding: 12px;
+        width: calc(100% - 24px);
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        outline: none;
+        transition: border 0.3s;
+      }
+      input:focus {
+        border-color: #007bff;
       }
       button {
-        padding: 8px 15px;
-        margin: 10px 0;
+        padding: 12px 20px;
+        background-color: #007bff;
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
         cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #0056b3;
       }
       .output {
-        margin-top: 20px;
-        padding: 10px;
-        border: 1px solid #ddd;
+        margin-top: 30px;
+        padding: 15px;
+        border-radius: 5px;
         background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        color: #333;
+        font-size: 16px;
       }
     </style>
   </head>
   <body>
-    <h1>Client Node Interface</h1>
+    <div class="container">
+      <h1>Client Node Interface</h1>
 
-    <!-- Input para guardar URLs -->
-    <h3>Guardar URL</h3>
-    <input
-      type="text"
-      id="save_url_input"
-      placeholder="Ingrese la URL para guardar"
-    />
-    <button onclick="pushUrl()">Guardar URL</button>
+      <!-- Input para guardar URLs -->
+      <h3>Guardar URL</h3>
+      <input
+        type="text"
+        id="save_url_input"
+        placeholder="Ingrese la URL para guardar"
+      />
+      <button onclick="pushUrl()">Guardar URL</button>
 
-    <!-- Input para buscar URLs -->
-    <h3>Buscar URL</h3>
-    <input
-      type="text"
-      id="search_url_input"
-      placeholder="Ingrese la URL para buscar"
-    />
-    <button onclick="getUrl()">Buscar URL</button>
+      <!-- Input para buscar URLs -->
+      <h3>Buscar URL</h3>
+      <input
+        type="text"
+        id="search_url_input"
+        placeholder="Ingrese la URL para buscar"
+      />
+      <button onclick="getUrl()">Buscar URL</button>
 
-    <!-- Output para mostrar resultados -->
-    <div class="output" id="output"></div>
+      <!-- Output para mostrar resultados -->
+      <div class="output" id="output"></div>
+    </div>
 
     <script>
       // Función para guardar la URL
