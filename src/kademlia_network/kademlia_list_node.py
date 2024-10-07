@@ -66,11 +66,11 @@ class KademliaListNode(KademliaNode):
         self.set_chunk(list, chunk_idx, idx_in_chunk)
         return {"status": "OK"}
 
-    def find_leader_address(self) -> str:
+    def find_leader_address(self, node=False) -> str:
         leaders = self.lookup(0)
         if leaders and leaders[0]:
             leader = leaders[0]
-            return f"{leader.ip}:{leader.port}"
+            return leader.to_json() if node else f"{leader.ip}:{leader.port}"
         return None
 
     def init_list(self, list):
@@ -101,7 +101,16 @@ class KademliaListNode(KademliaNode):
 
     def list_get(self, list, index):
         _, idx_in_chunk, chunk = self.chunk_for_idx(list, index)
-        return chunk[idx_in_chunk]
+        try:
+            retrive = chunk[idx_in_chunk]
+            return retrive
+        except Exception as e:
+            log.warning(
+                f"Error al obtener el valor de la lista {list} con tamano {len(list)} con idx {idx_in_chunk}: {e}"
+            )
+            # log.error(f"Error al obtener el valor de la lista: {e}")
+            return None
+        # return chunk[idx_in_chunk]
 
     def get_tail(self, list) -> Tuple[int, int, List]:
         """Devuelve la longitud de la cola,

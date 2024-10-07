@@ -49,6 +49,7 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
 
     def welcome(self, entry_points: List[KademliaNodeData], role: str):
         v = False
+        log.critical(f"Welcome to {entry_points[0]}")
         if role != self.role and role == NodeType.ADMIN.value:
             original_entry_point = entry_points[0]
             self.push("entry points", original_entry_point.to_json())
@@ -112,14 +113,14 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         puede solicitarle su registro"""
         self.bootstrap(entry_points)
         idx = self.get_length("entry points") - 1
-        log.critical(f"Registering to {idx} entry points")
         while idx >= 0:
+            log.critical(f"Registering to {idx + 1} entry points")
             try:
                 entry_point = KademliaNodeData.from_json(
                     self.list_get("entry points", idx)
                 )
             except Exception as e:
-                log.error(f"Error al obtener el entry point: {e}")
+                log.error(f"Error al obtener el entry point {idx + 1}: {e}")
                 idx -= 1
                 continue
             address = f"{entry_point.ip}:{entry_point.port}"

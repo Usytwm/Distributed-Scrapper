@@ -1,6 +1,10 @@
+import logging
 from flask import jsonify, request
 from src.Interfaces.WorkerNode import Worker_Node
 from src.utils.utils import NodeType
+
+
+log = logging.getLogger(__name__)
 
 
 class StorageNode(Worker_Node):
@@ -40,12 +44,14 @@ class StorageNode(Worker_Node):
 
 def set(self, key, value):
     self.set(key, value)
+    log.critical(f"Set {key} with value {value}")
     return {"status": "OK"}
 
 
 def get(self, key):
     value = self.get(key)
     if not (value == False):
+        log.critical(f"Get {key} with value {value}")
         return {"status": "OK", "value": value}
     else:
         return {"status": "OK", "value": None}

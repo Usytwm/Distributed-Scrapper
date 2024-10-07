@@ -142,7 +142,9 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
     def respond_to_broadcast(self, addr, role):
         ip, port = addr
-        entry_points = [self.node_data.to_json()]
+        node = self.find_leader_address(node=True)
+        node_data = KademliaNodeData.from_json(node) if node else self.node_data
+        entry_points = [node_data.to_json()]
         target_role = self.role
 
         if role == "client":
