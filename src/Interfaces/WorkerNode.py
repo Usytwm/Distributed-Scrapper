@@ -49,8 +49,8 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
 
     def welcome(self, entry_points: List[KademliaNodeData], role: str):
         v = False
-        log.critical(f"Welcome to {entry_points[0]}")
         if role != self.role and role == NodeType.ADMIN.value:
+            log.critical(f"Welcome to {entry_points[0]}")
             original_entry_point = entry_points[0]
             self.push("entry points", original_entry_point.to_json())
             self.set(

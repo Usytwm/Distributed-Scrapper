@@ -77,7 +77,7 @@ class KademliaListNode(KademliaNode):
         address = self.find_leader_address()
         response = self.call_rpc(address, "leader/init_list", {"list": list})
         if response is None:
-            print(f"No response from node {address}")
+            log.critical(f"No response from node {address}")
             return
         return response.get("status") == "OK"
 
@@ -86,7 +86,7 @@ class KademliaListNode(KademliaNode):
         data = {"list": list, "value": value}
         response = self.call_rpc(address, "leader/append", data)
         if response is None:
-            print(f"No response from node {address}")
+            log.critical(f"No response from node {address}")
             return
         return response.get("status") == "OK"
 
@@ -95,7 +95,7 @@ class KademliaListNode(KademliaNode):
         data = {"list": list, "idx": index, "value": value}
         response = self.call_rpc(address, "leader/list_set", data)
         if response is None:
-            print(f"No response from node {address}")
+            log.critical(f"No response from node {address}")
             return
         return response.get("status") == "OK"
 
@@ -106,7 +106,7 @@ class KademliaListNode(KademliaNode):
             return retrive
         except Exception as e:
             log.warning(
-                f"Error al obtener el valor de la lista {list} con tamano {len(list)} con idx {idx_in_chunk}: {e}"
+                f"Error al obtener el valor de la lista {list} con tamano {len(chunk)} con idx {idx_in_chunk}: {e}"
             )
             # log.error(f"Error al obtener el valor de la lista: {e}")
             return None

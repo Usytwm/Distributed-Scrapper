@@ -94,8 +94,8 @@ class KademliaNode:
 
     def store(self, node: KademliaNodeData, key, value):
         self.welcome_if_new(node)
-        log.debug(
-            "got a store request from node %s, storing '%s'='%s'", node.id, key, value
+        log.critical(
+            "got a store request from node %s, storing '%s'='%s'", node, key, value
         )
         self.storage[key] = value
         return {"status": "OK"}
@@ -203,7 +203,7 @@ class KademliaNode:
             else:
                 new_node_close = True
             if not neighbors or new_node_close:
-                log.critical(f"save {key}:{value} to {node} from {self.node_data}")
+                log.critical(f"save {key}:{value} to {node}")
                 self.call_store(node, key, value)
 
     def lookup(self, id) -> List[KademliaNodeData]:
