@@ -77,8 +77,8 @@ class KademliaQueueNode(KademliaListNode):
 
     def get_first_idx(self, queue):
         first = self.get(f"{queue}_first")
-        if queue == "urls":
-            log.critical(f"Get first idx {first if first != False else 0} from {queue}")
+        # if queue == "urls":
+        #     log.critical(f"Get first idx {first if first != False else 0} from {queue}")
         return first if first != False else 0
 
     def set_first_idx(self, queue, idx):

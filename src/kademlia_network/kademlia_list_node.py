@@ -87,7 +87,7 @@ class KademliaListNode(KademliaNode):
         response = self.call_rpc(address, "leader/append", data)
         if response is None:
             log.critical(f"No response from node {address}")
-            return
+            return False
         return response.get("status") == "OK"
 
     def list_set(self, list, index, value):

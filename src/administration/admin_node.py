@@ -26,13 +26,12 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         max_chunk_size=2,
         max_depth=1,
     ):
-        DiscovererNode.__init__(self, ip, port, NodeType.ADMIN.value)
         KademliaQueueNode.__init__(self, node_id, storage, ip, port, ksize, alpha)
+        DiscovererNode.__init__(self, self.id, ip, port, NodeType.ADMIN.value)
         self.max_chunk_size = max_chunk_size
         self.configure_admin_endpoints()
         self.is_leader = False
         self.max_depth = max_depth
-        # self.role = NodeType.ADMIN
 
     def configure_admin_endpoints(self):
         @self.app.route("/welcome", methods=["POST"])
@@ -133,15 +132,19 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         start_time = time.time()
         while time.time() - start_time < self.timeout_for_welcome_answers:
             if self.entry_points is not None:
-                self.register(self.entry_points, self.role)
+                register = self.register(self.entry_points, self.role)
+                if register:
+                    log.critical(f"Registering in an existing net")
                 return
         self.start_leader()
-        self.register([], NodeType.ADMIN.value)
+        register = self.register([], NodeType.ADMIN.value)
+        if register:
+            log.critical(f"Registering as new net leader")
         thread = Thread(target=self.listen_to_broadcast)
         thread.start()
 
     def respond_to_broadcast(self, addr, role):
-        ip, port = addr
+        id, ip, port = addr
         node = self.find_leader_address(node=True)
         node_data = KademliaNodeData.from_json(node) if node else self.node_data
         entry_points = [node_data.to_json()]
@@ -160,18 +163,26 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
             return
         # Si el rol es diferente, y está vacío, entonces enviar la respuesta
         if self.role != role and self.is_empty(role):
-            self.call_rpc(
+            log.critical(f"LLEGUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE {role} ")
+            self.push(role, KademliaNodeData(id, ip, port).to_json())
+            response = self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
                 {"entry points": entry_points, "role": target_role},
             )
+            log.critical(f"Response to broadcast to {ip}:{port}")
+            if response is None:
+                log.critical(f"Error in response to broadcast to {ip}:{port}")
         # Si el rol es el mismo admin, enviar la respuesta directamente
         elif self.role == role:
-            self.call_rpc(
+            response = self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
                 {"entry points": entry_points, "role": target_role},
             )
+            log.critical(f"Response to broadcast to {ip}:{port}")
+            if response is None:
+                log.critical(f"Error in response to broadcast to {ip}:{port}")
 
     def push_url(self, url):
         return self.push("urls", (url, 0))
@@ -231,6 +242,8 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         return register
 
     def leader_register(self, role, node: KademliaNodeData):
+        if not self.is_leader:
+            self.start_leader()
         ok = self.push(role, node.to_json())
         # log.critical(f"Registering {node} as {role} in {self.node_data}")
         if role == NodeType.ADMIN.value and ok and self.id > node.id:
@@ -334,6 +347,8 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
     def handle_scrap_results(
         self, urls: List[str], scrapper: KademliaNodeData, state: bool, depth: int
     ):
+        if not self.is_leader:
+            self.start_leader()
         if depth < self.max_depth:
             for url in urls:
                 self.push("urls", (url, depth + int(state == True)))
@@ -365,7 +380,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                 },
             )
             if response_storage is None:
-                log.debugf(f"No response from node {scrapper_address}")
+                log.debug(f"No response from node {scrapper_address}")
                 data = {
                     "url": [url],
                     "scrapper": scrapper.to_json(),

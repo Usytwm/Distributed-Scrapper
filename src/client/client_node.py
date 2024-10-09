@@ -9,7 +9,7 @@ from src.kademlia_network.kademlia_node_data import KademliaNodeData
 
 class ClientNode(DiscovererNode):
     def __init__(self, host, port):
-        DiscovererNode.__init__(self, ip=host, port=port, role="client")
+        DiscovererNode.__init__(self, id=-1, ip=host, port=port, role="client")
         self.app = Flask(__name__)
         self.configure_client_endpoints()
         self.entry_points = None
@@ -37,9 +37,17 @@ class ClientNode(DiscovererNode):
                 response = self.push_url(url)
                 if response:
                     return jsonify(
-                        {"status": "success", "message": "URL guardada correctamente."}
+                        {
+                            "status": "success",
+                            "message": "URL añadida a la cola de solicitudes.",
+                        }
                     )
-            return jsonify({"status": "error", "message": "No se pudo guardar la URL."})
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "No añadir la URL a la cola de solicitudes.",
+                }
+            )
 
         # Ruta para manejar la búsqueda de URL
         @self.app.route("/get_url", methods=["POST"])

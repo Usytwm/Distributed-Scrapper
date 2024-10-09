@@ -3,7 +3,8 @@ from threading import Thread
 
 
 class DiscovererNode:
-    def __init__(self, ip, port, role):
+    def __init__(self, id, ip, port, role):
+        self.id = id
         self.ip = ip
         self.port = port
         self.role = role
@@ -31,9 +32,9 @@ class DiscovererNode:
         while self.listening_to_broadcast:
             try:
                 data, addr = sock.recvfrom(1024)
-                ip, port, role = self.unpack(data)
+                id, ip, port, role = self.unpack(data)
                 thread = Thread(
-                    target=self.respond_to_broadcast, args=((ip, port), role)
+                    target=self.respond_to_broadcast, args=((id, ip, port), role)
                 )
                 thread.start()
             except Exception as e:
@@ -46,12 +47,12 @@ class DiscovererNode:
         pass
 
     def pack(self):
-        message = f"{self.ip}|{self.port}|{self.role}"
+        message = f"{self.id}|{self.ip}|{self.port}|{self.role}"
         return message.encode("utf-8")
 
     def unpack(self, data):
         decoded_message = data.decode("utf-8")
-        ip, port, role = decoded_message.split(
+        id, ip, port, role = decoded_message.split(
             "|"
         )  # Dividir la cadena en IP, puerto y role
-        return ip, int(port), role
+        return int(id), ip, int(port), role

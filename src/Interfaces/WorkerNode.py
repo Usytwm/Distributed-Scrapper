@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 class Worker_Node(KademliaHeapNode, DiscovererNode):
     def __init__(self, host, port, role, id=None):
         KademliaHeapNode.__init__(self, node_id=id, ip=host, port=port)
-        DiscovererNode.__init__(self, ip=host, port=port, role=role)
+        DiscovererNode.__init__(self, id=self.id, ip=host, port=port, role=role)
         self.configure_worker_endpoints()
         self.role = role
 
@@ -52,7 +52,8 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         if role != self.role and role == NodeType.ADMIN.value:
             log.critical(f"Welcome to {entry_points[0]}")
             original_entry_point = entry_points[0]
-            self.push("entry points", original_entry_point.to_json())
+            push = self.push("entry points", original_entry_point.to_json())
+            log.critical(push)
             self.set(
                 f"entry_point_element_{original_entry_point.id}",
                 original_entry_point.to_json(),
@@ -63,17 +64,28 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
 
     def start(self):
         self.broadcast()
+        # start_time = time.time()
+        # int_spended_time = 0
         while True:
             if self.entry_points is not None:
-                self.register(self.entry_points, self.role)
+                result = self.register(self.entry_points, self.role)
+                if result:
+                    (
+                        log.critical(f"Registering in an existing net")
+                        if self.entry_points
+                        else log.critical(f"Registering as new net leader")
+                    )
                 break
+            # if int(time.time() - start_time) > int_spended_time:
+            #     int_spended_time += 1
+            #     self.broadcast()
 
         thread = Thread(target=self.listen_to_broadcast)
         thread.start()
 
     def respond_to_broadcast(self, addr, role):
         if role == self.role:
-            ip, port = addr
+            id, ip, port = addr
             self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
@@ -112,7 +124,9 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         usara para el bootstrapping. Una vez en la red podra conocer a que entry_points de la red de administradores
         puede solicitarle su registro"""
         self.bootstrap(entry_points)
+        log.critical("bootstrap REALIZADO CON EXITO")
         idx = self.get_length("entry points") - 1
+        log.critical(f"IDX={idx}")
         while idx >= 0:
             log.critical(f"Registering to {idx + 1} entry points")
             try:
