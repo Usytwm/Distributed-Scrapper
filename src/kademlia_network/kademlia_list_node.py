@@ -119,7 +119,7 @@ class KademliaListNode(KademliaNode):
             retrive = chunk[idx_in_chunk]
             return retrive
         except Exception as e:
-            log.warning(
+            log.critical(
                 f"Error al obtener el valor de la lista {list} con tamano {len(chunk)} con idx {idx_in_chunk}: {e}"
             )
             # log.error(f"Error al obtener el valor de la lista: {e}")

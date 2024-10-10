@@ -29,7 +29,7 @@ class KademliaNodeData:
         return cls(dict["id"], dict["ip"], dict["port"])
 
     def __str__(self) -> str:
-        return f"ID:{self.id} -> ADRESS:{self.ip}:{self.port}"
+        return f"[{self.ip}:{self.port}]"
 
     def __eq__(self, value: "KademliaNodeData") -> bool:
         if value is None:

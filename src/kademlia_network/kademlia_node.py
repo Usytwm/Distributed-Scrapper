@@ -203,7 +203,7 @@ class KademliaNode:
             else:
                 new_node_close = True
             if not neighbors or new_node_close:
-                log.critical(f"save {key}:{value} to {node}")
+                log.debug(f"save {key}:{value} to {node}")
                 self.call_store(node, key, value)
 
     def lookup(self, id) -> List[KademliaNodeData]:

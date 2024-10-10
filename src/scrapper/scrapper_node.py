@@ -50,6 +50,8 @@ class Scrapper_Node(Worker_Node):
                 full_link = urljoin(url, link["href"])
                 links.add(full_link)
 
+            log.critical(f"{url} ESCRAPEADA")
+
             return (
                 jsonify(
                     {

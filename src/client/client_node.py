@@ -1,4 +1,5 @@
 from threading import Thread
+import time
 
 import requests
 from src.Interfaces.AutoDiscoveredNode import DiscovererNode
@@ -13,6 +14,7 @@ class ClientNode(DiscovererNode):
         self.app = Flask(__name__)
         self.configure_client_endpoints()
         self.entry_points = None
+        self.started = False
 
     def configure_client_endpoints(self):
         @self.app.route("/welcome", methods=["POST"])
@@ -73,6 +75,7 @@ class ClientNode(DiscovererNode):
         self.broadcast()
         while True:
             if self.entry_points is not None:
+                self.started = True
                 break
 
     def call_rpc(self, node_address, endpoint, data):
@@ -127,5 +130,8 @@ class ClientNode(DiscovererNode):
         if answer:
             return answer
         if (len(self.entry_points) == 0) and repeat:
+            self.started = False
             self.start()
+            while not self.started:
+                time.sleep(0.2)
             return self.get_url(url, repeat=False)

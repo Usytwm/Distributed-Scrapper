@@ -21,6 +21,7 @@ class StorageNode(Worker_Node):
                 data.get("value"),
                 data.get("redirection"),
             )
+            log.critical(f"Guardando {key}:{value}")
             response = self.set(key, value)
             redirectiron_response = (
                 self.set(redirection, value) if redirection else None

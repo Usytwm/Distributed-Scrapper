@@ -36,7 +36,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
     def configure_admin_endpoints(self):
         @self.app.route("/welcome", methods=["POST"])
         def welcome():
-            log.critical(f"llego al welcomwe de {self.node_data}")
+            log.debug(f"llego al welcomwe de {self.node_data}")
             data = request.get_json(force=True)
             entry_points = [
                 KademliaNodeData.from_json(node) for node in data.get("entry points")
@@ -127,7 +127,6 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
     def welcome(self, entry_points):
         self.entry_points = entry_points
-
         return {"status": "OK"}
 
     def start(self):
@@ -135,8 +134,14 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         start_time = time.time()
         while time.time() - start_time < self.timeout_for_welcome_answers:
             if self.entry_points is not None:
+                log.critical(
+                    "====================================ENTRY POINTS===================================="
+                )
                 for entrypoint in self.entry_points:
                     log.critical(f"{entrypoint}")
+                log.critical(
+                    "===================================================================================="
+                )
                 register = self.register(self.entry_points, self.role)
                 if register:
                     log.critical(f"Registering in an existing net")
@@ -177,18 +182,21 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
             return
         # Si el rol es diferente, y está vacío, entonces enviar la respuesta
         if self.role != role and self.is_empty(role):
-            log.critical(f"Respondiendo broadcast hacia {ip}:{port} con rol {role} ")
+
             response = self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
                 {"entry points": entry_points, "role": target_role},
             )
-            log.critical(f"Response to broadcast to {ip}:{port}")
+
             if response is None:
                 log.critical(f"Error in response to broadcast to {ip}:{port}")
+            else:
+                log.critical(
+                    f"Respondiendo broadcast hacia {ip}:{port} con rol {role} "
+                )
         # Si el rol es el mismo admin, enviar la respuesta directamente
         elif self.role == role:
-            log.critical(f"Respondiendo broadcast hacia {ip}:{port} con rol {role} ")
             response = self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
@@ -197,6 +205,10 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
             log.critical(f"Response to broadcast to {ip}:{port}")
             if response is None:
                 log.critical(f"Error in response to broadcast to {ip}:{port}")
+            else:
+                log.critical(
+                    f"Respondiendo broadcast hacia {ip}:{port} con rol {role} "
+                )
 
         self.push(role, KademliaNodeData(id, ip, port).to_json())
 
@@ -206,12 +218,12 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
     def get_url(self, url):
         # length_storage = self.get_length_queue("storage")
         storage, _ = self.select_as_reader("storage")
-        log.critical(f"get_url => {storage}")
+        log.critical(f"Obteniendo URL:{url} desde STORAGE:{storage}")
         if storage is None:
             return None
         response = self.call_rpc(f"{storage.ip}:{storage.port}", "get", {"key": url})
-        log.critical(f"get_url_response => {response}")
         if response and response.get("status") == "OK":
+            log.critical(f"URL:{url} OBTENIDA CON EXITO")
             return response.get("value")
 
     def start_leader(self):
@@ -402,6 +414,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                 "depth": depth,
             }
         else:
+            log.critical(f"URL {url} ESCRAPEADA RECIBIDA")
             response_storage = self.call_rpc(
                 storage_address,
                 "set",
