@@ -36,10 +36,12 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
     def configure_admin_endpoints(self):
         @self.app.route("/welcome", methods=["POST"])
         def welcome():
+            log.critical(f"llego al welcomwe de {self.node_data}")
             data = request.get_json(force=True)
             entry_points = [
                 KademliaNodeData.from_json(node) for node in data.get("entry points")
             ]
+
             response = self.welcome(entry_points)
             return jsonify(response), 200
 
@@ -125,6 +127,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
     def welcome(self, entry_points):
         self.entry_points = entry_points
+
         return {"status": "OK"}
 
     def start(self):
@@ -132,9 +135,15 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
         start_time = time.time()
         while time.time() - start_time < self.timeout_for_welcome_answers:
             if self.entry_points is not None:
+                for entrypoint in self.entry_points:
+                    log.critical(f"{entrypoint}")
                 register = self.register(self.entry_points, self.role)
                 if register:
                     log.critical(f"Registering in an existing net")
+                else:
+                    log.critical(f"not Registering in an existing net")
+                thread = Thread(target=self.listen_to_broadcast)
+                thread.start()
                 return
         self.start_leader()
         register = self.register([], NodeType.ADMIN.value)
@@ -146,6 +155,10 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
     def respond_to_broadcast(self, addr, role):
         id, ip, port = addr
         node = self.find_leader_address(node=True)
+        # address = f"{node.ip}:{node.port}"
+        # response = self.call_rpc(address, "global_ping", {})
+        # if not response or response.get("status") != "OK":
+        #     node = None
         node_data = KademliaNodeData.from_json(node) if node else self.node_data
         entry_points = [node_data.to_json()]
         target_role = self.role
@@ -160,11 +173,11 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                     "entry points": [entry_point.to_json() for entry_point in closest],
                 },
             )
+            log.critical(f"Respondiendo broadcast hacia {ip}:{port} con rol {role} ")
             return
         # Si el rol es diferente, y está vacío, entonces enviar la respuesta
         if self.role != role and self.is_empty(role):
-            log.critical(f"LLEGUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE {role} ")
-            self.push(role, KademliaNodeData(id, ip, port).to_json())
+            log.critical(f"Respondiendo broadcast hacia {ip}:{port} con rol {role} ")
             response = self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
@@ -175,6 +188,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                 log.critical(f"Error in response to broadcast to {ip}:{port}")
         # Si el rol es el mismo admin, enviar la respuesta directamente
         elif self.role == role:
+            log.critical(f"Respondiendo broadcast hacia {ip}:{port} con rol {role} ")
             response = self.call_rpc(
                 f"{ip}:{port}",
                 "welcome",
@@ -184,15 +198,19 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
             if response is None:
                 log.critical(f"Error in response to broadcast to {ip}:{port}")
 
+        self.push(role, KademliaNodeData(id, ip, port).to_json())
+
     def push_url(self, url):
         return self.push("urls", (url, 0))
 
     def get_url(self, url):
-        length_storage = self.get_length_queue("storage")
-        storage, _, _ = self.select("storage", length_storage)
+        # length_storage = self.get_length_queue("storage")
+        storage, _ = self.select_as_reader("storage")
+        log.critical(f"get_url => {storage}")
         if storage is None:
             return None
         response = self.call_rpc(f"{storage.ip}:{storage.port}", "get", {"key": url})
+        log.critical(f"get_url_response => {response}")
         if response and response.get("status") == "OK":
             return response.get("value")
 
@@ -212,6 +230,7 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
 
     def follower_register(self, role, node: KademliaNodeData):
         address = self.find_leader_address()
+        log.critical(f"Registering {node} as {role} in {address}")
         data = {"role": role, "node": node.to_json()}
         response = self.call_rpc(address, "/leader/register", data)
         if response is None:
@@ -343,6 +362,19 @@ class Admin_Node(KademliaQueueNode, DiscovererNode):
                 return node, address, length_role
             length_role -= 1
         return None, None, length_role
+
+    def select_as_reader(self, role):
+        idx = self.get_first_idx(role)
+        while True:
+            response = self.list_get(role, idx)
+            if response is None:
+                return None, None
+            node = KademliaNodeData.from_json(response)
+            address = f"{node.ip}:{node.port}"
+            response = self.call_rpc(address, "global_ping", {})
+            if response and response.get("status") == "OK":
+                return node, address
+            idx += 1
 
     def handle_scrap_results(
         self, urls: List[str], scrapper: KademliaNodeData, state: bool, depth: int

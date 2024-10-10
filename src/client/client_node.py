@@ -84,22 +84,48 @@ class ClientNode(DiscovererNode):
         except Exception:
             return None
 
-    def push_url(self, url):
-        for node in self.entry_points:
+    def push_url(self, url, repeat=True):
+        to_erase = set()
+        response = None
+        for i, node in enumerate(self.entry_points):
             address = f"{node.ip}:{node.port}"
             data = {
                 "url": url,
             }
             response = self.call_rpc(address, "push_url", data)
-            if response and response.get("status") == "OK":
-                return response
+            if response:
+                if response.get("status") == "OK":
+                    break
+            else:
+                to_erase.add(i)
+        self.entry_points = [
+            point for i, point in enumerate(self.entry_points) if not i in to_erase
+        ]
+        if (len(self.entry_points) == 0) and repeat:
+            self.start()
+            return self.push_url(url, repeat=False)
+        return response
 
-    def get_url(self, url):
-        for node in self.entry_points:
+    def get_url(self, url, repeat=True):
+        to_erase = set()
+        answer = None
+        for i, node in enumerate(self.entry_points):
             address = f"{node.ip}:{node.port}"
             data = {
                 "url": url,
             }
             response = self.call_rpc(address, "get_url", data)
-            if response and response.get("status") == "OK":
-                return response.get("value")
+            if response:
+                if response.get("status") == "OK":
+                    answer = response.get("value")
+                    break
+            else:
+                to_erase.add(i)
+        self.entry_points = [
+            point for i, point in enumerate(self.entry_points) if not i in to_erase
+        ]
+        if answer:
+            return answer
+        if (len(self.entry_points) == 0) and repeat:
+            self.start()
+            return self.get_url(url, repeat=False)

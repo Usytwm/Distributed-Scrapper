@@ -68,10 +68,24 @@ class KademliaListNode(KademliaNode):
 
     def find_leader_address(self, node=False) -> str:
         leaders = self.lookup(0)
-        if leaders and leaders[0]:
-            leader = leaders[0]
-            return leader.to_json() if node else f"{leader.ip}:{leader.port}"
-        return None
+        for leader in leaders:
+            response = self.call_ping(leader)
+            if response:
+                return leader.to_json() if node else f"{leader.ip}:{leader.port}"
+            else:
+                try:
+                    self.router.remove(leader.id)
+                except Exception as e:
+                    # log.error(f"Error al remover contacto: {e}")
+                    continue
+        # if leaders and leaders[0]:
+        #     leader = leaders[0]
+        #     response = self.call_ping(leader)
+        #     if response:
+        #         return leader if node else f"{leader.ip}:{leader.port}"
+        #     else:
+        #         self.router.remove_contact(leader)
+        # return None
 
     def init_list(self, list):
         address = self.find_leader_address()

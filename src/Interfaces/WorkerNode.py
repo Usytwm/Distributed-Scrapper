@@ -124,7 +124,7 @@ class Worker_Node(KademliaHeapNode, DiscovererNode):
         usara para el bootstrapping. Una vez en la red podra conocer a que entry_points de la red de administradores
         puede solicitarle su registro"""
         self.bootstrap(entry_points)
-        log.critical("bootstrap REALIZADO CON EXITO")
+        log.critical("BOOTSTRAP REALIZADO CON EXITO")
         idx = self.get_length("entry points") - 1
         log.critical(f"IDX={idx}")
         while idx >= 0:
