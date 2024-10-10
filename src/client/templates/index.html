@@ -85,6 +85,26 @@
         word-wrap: break-word;
         width: 100%;
       }
+      /* Estilo del spinner */
+      .spinner {
+        display: none;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+        margin-top: 20px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
@@ -109,14 +129,31 @@
       />
       <button onclick="getUrl()">Buscar URL</button>
 
+      <!-- Spinner de carga -->
+      <div class="spinner" id="spinner"></div>
+
       <!-- Output para mostrar resultados -->
       <div class="output" id="output"></div>
     </div>
 
     <script>
+      // Mostrar el spinner
+      function showSpinner() {
+        document.getElementById("spinner").style.display = "block";
+      }
+
+      // Ocultar el spinner
+      function hideSpinner() {
+        document.getElementById("spinner").style.display = "none";
+      }
+
       // Función para guardar la URL
       function pushUrl() {
         const url = document.getElementById("save_url_input").value;
+
+        // Mostrar el spinner mientras se realiza la solicitud
+        showSpinner();
+
         fetch("/push_url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -125,12 +162,24 @@
           .then((response) => response.json())
           .then((data) => {
             document.getElementById("output").innerHTML = data.message;
+          })
+          .catch((error) => {
+            document.getElementById("output").innerHTML =
+              "Error: " + error.message;
+          })
+          .finally(() => {
+            // Ocultar el spinner cuando la solicitud se complete
+            hideSpinner();
           });
       }
 
       // Función para buscar la URL
       function getUrl() {
         const url = document.getElementById("search_url_input").value;
+
+        // Mostrar el spinner mientras se realiza la solicitud
+        showSpinner();
+
         fetch("/get_url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -143,6 +192,14 @@
             } else {
               document.getElementById("output").innerHTML = data.message;
             }
+          })
+          .catch((error) => {
+            document.getElementById("output").innerHTML =
+              "Error: " + error.message;
+          })
+          .finally(() => {
+            // Ocultar el spinner cuando la solicitud se complete
+            hideSpinner();
           });
       }
     </script>
